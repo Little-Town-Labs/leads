@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(pnpm add:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx:*)"
     ],
     "deny": [],
     "ask": []
