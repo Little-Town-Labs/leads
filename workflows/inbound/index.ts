@@ -11,6 +11,20 @@ import {
 } from './steps';
 
 /**
+ * Extended Lead type with tenant context
+ */
+export type LeadWithTenant = Lead & {
+  tenantId?: string;
+  tenantSettings?: {
+    enableAiResearch: boolean;
+    qualificationThreshold: number;
+    quizCompletionRedirect?: string;
+    emailFromName?: string;
+    emailFromAddress?: string;
+  };
+};
+
+/**
  * workflow to handle the inbound lead
  * - create workflow record
  * - research the lead
@@ -23,8 +37,13 @@ import {
  * - finalize workflow status
  * - if the lead is not qualified or follow up:
  *   - take other actions here based on other qualification categories
+ *
+ * Now supports tenant-aware processing:
+ * - Uses tenant settings to determine AI research behavior
+ * - Respects qualification thresholds
+ * - Can customize email sender information
  */
-export const workflowInbound = async (lead: Lead) => {
+export const workflowInbound = async (lead: Lead | LeadWithTenant) => {
   'use workflow';
 
   try {

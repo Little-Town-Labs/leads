@@ -10,7 +10,7 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { quizQuestions, tenants, type NewQuizQuestion } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Use HTTP driver for Node.js scripts
 const sql = neon(process.env.DATABASE_URL!);
@@ -511,8 +511,10 @@ async function seedQuizQuestions() {
       const existing = await db
         .select()
         .from(quizQuestions)
-        .where(eq(quizQuestions.orgId, leadAgentOrgId))
-        .where(eq(quizQuestions.questionNumber, question.questionNumber))
+        .where(and(
+          eq(quizQuestions.orgId, leadAgentOrgId),
+          eq(quizQuestions.questionNumber, question.questionNumber)
+        ))
         .limit(1);
 
       if (existing.length === 0) {
@@ -532,8 +534,10 @@ async function seedQuizQuestions() {
       const existing = await db
         .select()
         .from(quizQuestions)
-        .where(eq(quizQuestions.orgId, timelessTechOrgId))
-        .where(eq(quizQuestions.questionNumber, question.questionNumber))
+        .where(and(
+          eq(quizQuestions.orgId, timelessTechOrgId),
+          eq(quizQuestions.questionNumber, question.questionNumber)
+        ))
         .limit(1);
 
       if (existing.length === 0) {
