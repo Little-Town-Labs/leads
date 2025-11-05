@@ -4,16 +4,17 @@ import { requirePermission } from '@/lib/permissions';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check permission
     await requirePermission('leads:approve');
 
     const orgDb = await getOrgDb();
+    const { id } = await params;
 
     // Update lead status
-    const [updatedLead] = await orgDb.leads.update(params.id, {
+    const [updatedLead] = await orgDb.leads.update(id, {
       status: 'approved',
     });
 
