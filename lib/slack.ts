@@ -39,7 +39,8 @@ export const slackApp = hasSlackCredentials
  */
 export async function sendSlackMessageWithButtons(
   channel: string,
-  text: string
+  text: string,
+  workflowId: string
 ): Promise<{ messageTs: string; channel: string }> {
   if (!slackApp) {
     throw new Error(
@@ -73,7 +74,8 @@ export async function sendSlackMessageWithButtons(
               emoji: true
             },
             style: 'primary',
-            action_id: 'lead_approved'
+            action_id: 'lead_approved',
+            value: workflowId // Store workflow ID in button value
           },
           {
             type: 'button',
@@ -83,7 +85,8 @@ export async function sendSlackMessageWithButtons(
               emoji: true
             },
             style: 'danger',
-            action_id: 'lead_rejected'
+            action_id: 'lead_rejected',
+            value: workflowId // Store workflow ID in button value
           }
         ]
       }

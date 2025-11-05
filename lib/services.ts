@@ -55,7 +55,8 @@ export async function writeEmail(
 export async function humanFeedback(
   research: string,
   email: string,
-  qualification: QualificationSchema
+  qualification: QualificationSchema,
+  workflowId: string
 ) {
   const message = `*New Lead Qualification*\n\n*Email:* ${email}\n*Category:* ${
     qualification.category
@@ -66,7 +67,7 @@ export async function humanFeedback(
 
   const slackChannel = process.env.SLACK_CHANNEL_ID || '';
 
-  return await sendSlackMessageWithButtons(slackChannel, message);
+  return await sendSlackMessageWithButtons(slackChannel, message, workflowId);
 }
 
 /**

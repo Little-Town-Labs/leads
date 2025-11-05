@@ -1,0 +1,17 @@
+{
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@clerk_publishable_key",
+    "CLERK_SECRET_KEY": "@clerk_secret_key",
+    "CLERK_WEBHOOK_SECRET": "@clerk_webhook_secret",
+    "AI_GATEWAY_API_KEY": "@ai_gateway_api_key",
+    "EXA_API_KEY": "@exa_api_key",
+    "SLACK_BOT_TOKEN": "@slack_bot_token",
+    "SLACK_SIGNING_SECRET": "@slack_signing_secret",
+    "SLACK_CHANNEL_ID": "@slack_channel_id"
+  }
+}
