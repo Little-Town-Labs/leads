@@ -1,4 +1,83 @@
-import { pgTable, text, uuid, timestamp, jsonb, index, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, timestamp, jsonb, index, integer, boolean, unique } from 'drizzle-orm/pg-core';
+
+/**
+ * Tenants table - stores tenant/organization configuration
+ * Maps to Clerk organizations but adds custom branding and settings
+ */
+export const tenants = pgTable(
+  'tenants',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    clerkOrgId: text('clerk_org_id').notNull().unique(), // Maps to Clerk organization ID
+    subdomain: text('subdomain').notNull().unique(), // lead-agent, timeless-tech
+    customDomain: text('custom_domain'), // Optional: leads.company.com
+    name: text('name').notNull(), // Display name
+    slug: text('slug').notNull().unique(), // URL-safe identifier
+
+    // Branding customization
+    branding: jsonb('branding').$type<{
+      logoUrl?: string;
+      primaryColor: string;
+      secondaryColor: string;
+      fontFamily?: string;
+      faviconUrl?: string;
+    }>().notNull().default({
+      primaryColor: '#3B82F6',
+      secondaryColor: '#10B981',
+    }),
+
+    // Landing page content (stored as JSON for flexibility)
+    landingPage: jsonb('landing_page').$type<{
+      heroTitle: string;
+      heroSubtitle: string;
+      ctaText: string;
+      featureSections?: Array<{
+        title: string;
+        description: string;
+        icon?: string;
+      }>;
+    }>().notNull(),
+
+    // Settings
+    settings: jsonb('settings').$type<{
+      quizCompletionRedirect?: string;
+      emailFromName?: string;
+      emailFromAddress?: string;
+      enableAiResearch: boolean;
+      qualificationThreshold: number; // 0-100, leads above this get AI research
+    }>().notNull().default({
+      enableAiResearch: true,
+      qualificationThreshold: 60,
+    }),
+
+    // Subscription & limits
+    subscriptionTier: text('subscription_tier').notNull().default('starter'), // starter, professional, enterprise
+    subscriptionStatus: text('subscription_status').notNull().default('active'), // active, trial, canceled, suspended
+    usageLimits: jsonb('usage_limits').$type<{
+      maxQuizCompletionsMonthly: number;
+      maxAiWorkflowsMonthly: number;
+      maxTeamMembers: number;
+    }>().notNull(),
+
+    // Usage tracking (reset monthly)
+    currentUsage: jsonb('current_usage').$type<{
+      quizCompletionsThisMonth: number;
+      aiWorkflowsThisMonth: number;
+      lastResetDate: string; // ISO date string
+    }>().notNull().default({
+      quizCompletionsThisMonth: 0,
+      aiWorkflowsThisMonth: 0,
+      lastResetDate: new Date().toISOString(),
+    }),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    subdomainIndex: index('tenants_subdomain_idx').on(table.subdomain),
+    clerkOrgIdIndex: index('tenants_clerk_org_id_idx').on(table.clerkOrgId),
+  })
+);
 
 /**
  * Leads table - stores all inbound lead submissions
@@ -181,6 +260,8 @@ export const emailSends = pgTable(
 );
 
 // Type exports for TypeScript
+export type Tenant = typeof tenants.$inferSelect;
+export type NewTenant = typeof tenants.$inferInsert;
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;
 export type Workflow = typeof workflows.$inferSelect;

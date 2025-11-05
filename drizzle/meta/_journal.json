@@ -22,6 +22,13 @@
       "when": 1762372205460,
       "tag": "0002_sad_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762383660503,
+      "tag": "0003_silly_blonde_phantom",
+      "breakpoints": true
     }
   ]
 }
