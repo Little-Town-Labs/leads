@@ -1,0 +1,213 @@
+AI Career Coaching Intake Questions
+This intake form is designed for an AI-driven career coaching platform that uses personality test results and user-provided information to recommend suitable careers and explain their fit. The questions are structured to collect both quantitative (closed-ended) and qualitative (open-ended) data, enabling the AI to analyze user preferences, skills, motivations, and barriers. The form is informed by the "Career Design Blueprint" and "Choosing the Right Career Guidelines" to ensure alignment with career exploration principles.
+Instructions
+
+Please answer all questions as honestly and thoroughly as possible. Your responses will help the AI tailor career recommendations to your unique profile.
+Closed-ended questions (e.g., scales, multiple-choice) provide structured data for analysis, while open-ended questions allow you to share detailed insights.
+The form should take approximately 15-20 minutes to complete.
+All responses are confidential and will be used solely to generate personalized career suggestions.
+
+1. Personal Information
+Purpose: Collect basic demographic and contact details for user profiling and communication.
+
+Closed-Ended:
+
+What is your full name? [Text input]
+What is your email address? [Text input]
+What is your age range? [ ] 18-24 [ ] 25-34 [ ] 35-44 [ ] 45-54 [ ] 55+ [ ] Prefer not to say
+What is your gender? [ ] Male [ ] Female [ ] Non-binary [ ] Other [ ] Prefer not to say
+What is your highest level of education? [ ] High school or equivalent [ ] Associate’s degree [ ] Bachelor’s degree [ ] Master’s degree [ ] Doctorate [ ] Other [ ] None
+
+
+Open-Ended:
+
+Briefly describe your current living situation (e.g., living alone, with family, in a city/rural area). How does this influence your career choices?
+
+
+
+2. Current Employment Status
+Purpose: Understand the user’s work situation to assess career satisfaction and urgency for change.
+
+Closed-Ended:
+
+Are you currently employed? [ ] Yes, full-time [ ] Yes, part-time [ ] Self-employed [ ] Unemployed [ ] Student [ ] Retired [ ] Other
+If employed, how satisfied are you with your current job? (0 = Completely dissatisfied, 10 = Completely satisfied)[ ] 0 [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5 [ ] 6 [ ] 7 [ ] 8 [ ] 9 [ ] 10
+How long have you been in your current role? [ ] Less than 1 year [ ] 1-3 years [ ] 3-5 years [ ] 5+ years [ ] Not applicable
+
+
+Open-Ended:
+
+What do you like most about your current job (if applicable)? What do you find most challenging or dissatisfying?
+If you’re not currently working, what circumstances led to this, and what are you hoping to achieve through career coaching?
+
+
+
+3. Career Background
+Purpose: Gather work and education history to identify transferable skills and achievements.
+
+Closed-Ended:
+
+How many years of professional work experience do you have? [ ] 0-2 [ ] 3-5 [ ] 6-10 [ ] 11-20 [ ] 20+ [ ] None
+Which industries have you worked in? (Select all that apply)[ ] Technology [ ] Healthcare [ ] Education [ ] Finance [ ] Retail [ ] Manufacturing [ ] Creative/Arts [ ] Government [ ] Non-profit [ ] Other (specify)
+Which of the following skills do you have experience with? (Select all that apply)[ ] Leadership/Management [ ] Data Analysis [ ] Project Management [ ] Communication [ ] Technical Skills (e.g., coding, engineering) [ ] Creative Skills (e.g., design, writing) [ ] Customer Service [ ] Other (specify)
+
+
+Open-Ended:
+
+Briefly describe your career history, including key roles and responsibilities. What achievements are you most proud of?
+What educational or training experiences have shaped your career? Which did you enjoy the most, and why?
+
+
+
+4. Skills and Talents
+Purpose: Identify strengths and areas for growth to match users with roles that leverage their abilities.
+
+Closed-Ended:
+
+Rate your confidence in the following skills (1 = Not confident, 5 = Very confident):  
+Problem-solving: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Team collaboration: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Adaptability: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Creativity: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Technical expertise: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5
+
+
+Which skills do you most enjoy using in a work setting? (Select up to 3)[ ] Analytical thinking [ ] Leadership [ ] Communication [ ] Creativity [ ] Technical skills [ ] Organization [ ] Other (specify)
+Are there skills you want to develop? [ ] Yes [ ] NoIf yes, which ones? [Text input]
+
+
+Open-Ended:
+
+Describe a time when you used a skill or talent you’re proud of. What made this experience rewarding?
+Are there any skills you dislike using or find draining? Why?
+
+
+
+5. Passions and Interests
+Purpose: Uncover motivations and interests to align career suggestions with what excites the user.
+
+Closed-Ended:
+
+Which of the following activities do you enjoy outside of work? (Select all that apply)[ ] Creative pursuits (e.g., art, writing) [ ] Technology (e.g., coding, gadgets) [ ] Helping others (e.g., volunteering) [ ] Outdoor activities [ ] Research/Learning [ ] Leadership/Organizing [ ] Other (specify)
+How important is it for your career to align with your personal passions? (1 = Not important, 5 = Very important)[ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5
+
+
+Open-Ended:
+
+What activities or topics make you lose track of time? How would you love to incorporate these into your career?
+Are there causes or purposes (e.g., environmental sustainability, social justice) that you feel strongly about? How do these influence your career goals?
+
+
+
+6. Workplace Preferences
+Purpose: Determine the user’s ideal work environment to ensure career fit.
+
+Closed-Ended:
+
+Which work environment do you prefer? (Select one)[ ] Fast-paced and dynamic [ ] Structured and predictable [ ] Collaborative and team-oriented [ ] Independent and autonomous [ ] Mix of the above
+What is your preferred work schedule? [ ] Full-time [ ] Part-time [ ] Flexible/Remote [ ] Shift-based [ ] Other
+How important are the following workplace factors? (1 = Not important, 5 = Very important)  
+Work-life balance: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Salary: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Opportunities for growth: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5  
+Company culture: [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5
+
+
+What is your minimum acceptable annual salary (in USD)? [ ] <30,000 [ ] 30,000-50,000 [ ] 50,000-75,000 [ ] 75,000-100,000 [ ] 100,000+ [ ] Prefer not to say
+
+
+Open-Ended:
+
+Describe your ideal workplace. What kind of culture, colleagues, or management style would help you thrive?
+Are there workplace factors (e.g., long hours, micromanagement) you want to avoid? Why?
+
+
+
+7. Career Goals and Aspirations
+Purpose: Clarify the user’s objectives to tailor career recommendations.
+
+Closed-Ended:
+
+What is your primary career goal? (Select one)[ ] Change careers [ ] Advance in current career [ ] Improve job performance [ ] Find a job [ ] Start a business [ ] Achieve work-life balance [ ] Other
+How soon do you want to achieve this goal? [ ] Within 6 months [ ] 6-12 months [ ] 1-2 years [ ] 2+ years
+Are you open to relocating for a job? [ ] Yes, anywhere [ ] Yes, within my country [ ] No [ ] Unsure
+
+
+Open-Ended:
+
+What does career success look like to you in 5 years? Be as specific as possible.
+Are there specific roles, industries, or companies you’re considering? Why do they appeal to you?
+
+
+
+8. Barriers and Challenges
+Purpose: Identify obstacles to inform realistic career suggestions and support strategies.
+
+Closed-Ended:
+
+Which of the following barriers do you face in achieving your career goals? (Select all that apply)[ ] Lack of experience [ ] Lack of education/training [ ] Financial constraints [ ] Time constraints [ ] Confidence/self-esteem [ ] Location [ ] Other (specify)
+How confident are you in overcoming these barriers? (1 = Not confident, 5 = Very confident)[ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5
+
+
+Open-Ended:
+
+Describe any challenges or fears that might hold you back from pursuing your ideal career. How have these affected you in the past?
+What support or resources do you think would help you overcome these barriers?
+
+
+
+9. Personality and Values
+Purpose: Complement personality test results with self-reported traits and priorities.
+
+Closed-Ended:
+
+Which of the following values are most important to you in a career? (Select up to 3)[ ] Autonomy [ ] Collaboration [ ] Innovation [ ] Stability [ ] Impact [ ] Recognition [ ] Other (specify)
+How would you describe your work style? (Select one)[ ] Detail-oriented [ ] Big-picture thinker [ ] People-oriented [ ] Task-driven [ ] Mix of the above
+
+
+Open-Ended:
+
+What personal strengths do you bring to your work? Provide an example of how you’ve used one of these strengths.
+Are there aspects of your personality that you think influence your career choices? How?
+
+
+
+10. Additional Information
+Purpose: Capture any other relevant details and set expectations.
+
+Closed-Ended:
+
+How did you hear about this platform? [ ] Search engine [ ] Social media [ ] Referral [ ] Advertisement [ ] Other (specify)
+Have you worked with a career coach or similar service before? [ ] Yes [ ] NoIf yes, what was your experience? [Text input]
+Are you comfortable with the AI using your personality test results and intake responses to generate career recommendations? [ ] Yes [ ] No [ ] Need more information
+
+
+Open-Ended:
+
+Is there anything else you’d like the AI coach to know about you or your career journey?
+What are your expectations for this coaching process? What would make it a success for you?
+
+
+
+How the AI Uses These Questions
+The AI combines responses with personality test results (e.g., Big 5 traits like Openness, Conscientiousness) to generate career recommendations. For example:
+
+Closed-Ended Data: Scales (e.g., skill confidence, workplace preferences) are quantified to match users with careers requiring specific competencies or environments. For instance, high collaboration scores might suggest team-oriented roles like project management.
+Open-Ended Data: Natural language processing analyzes responses to identify themes (e.g., passion for helping others might point to healthcare or non-profit roles). Keywords like “creativity” or “autonomy” are mapped to job attributes.
+Personality Integration: If a user scores high on Openness and expresses interest in creative pursuits, the AI might recommend roles like graphic designer or marketing strategist, explaining how these align with their innovative nature and interests.
+Fit Explanation: The AI provides a rationale for each suggestion, linking user data to job requirements (e.g., “Your leadership experience and preference for dynamic environments make you a strong fit for a startup management role”).
+
+Example Career Recommendation Output
+Recommended Career: Data AnalystWhy It Fits:  
+
+Your high confidence in problem-solving (4/5) and experience with data analysis align with the analytical skills required for this role.  
+Your preference for a structured work environment matches the organized nature of data analysis tasks.  
+Your Big 5 Conscientiousness score suggests you thrive in roles requiring attention to detail, a key trait for data analysts.  
+Your interest in technology, mentioned in your response about enjoying coding, supports this career’s technical demands.
+
+Notes
+
+The form is designed to be completed digitally via a secure platform (e.g., Google Forms, Jotform) to ensure data privacy and compliance with regulations like GDPR.
+Questions are kept concise to respect user time while providing enough depth for AI analysis.
+The AI should flag responses indicating significant personal distress (e.g., severe financial constraints, low confidence) and suggest human coach intervention or external resources if needed.
+
