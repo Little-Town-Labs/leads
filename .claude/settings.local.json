@@ -4,7 +4,8 @@
       "Bash(pnpm add:*)",
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(pnpm dev)"
     ],
     "deny": [],
     "ask": []
