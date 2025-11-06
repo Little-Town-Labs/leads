@@ -1,12 +1,6 @@
 import { db } from '@/db';
 import { knowledgeBaseDocs, knowledgeBaseChunks } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { createOpenAI } from '@ai-sdk/openai';
-
-const openai = createOpenAI({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
-  baseURL: 'https://gateway.ai.cloudflare.com/v1/ce30696fe41ecef47976b85ec2d0963b/lead-agent/openai',
-});
 
 /**
  * Generate embeddings for text using OpenAI's embedding model
@@ -90,7 +84,7 @@ export async function searchKnowledgeBase(
     // Calculate similarity for each chunk
     const results = chunks
       .map((chunk) => {
-        if (!chunk.embedding) return null;
+        if (!chunk.embedding || !chunk.docId) return null;
 
         const chunkEmbedding = JSON.parse(chunk.embedding) as number[];
         const similarity = cosineSimilarity(queryEmbedding, chunkEmbedding);
@@ -115,11 +109,11 @@ export async function searchKnowledgeBase(
       .from(knowledgeBaseDocs)
       .where(sql`${knowledgeBaseDocs.id} IN (${sql.join(docIds.map((id) => sql`${id}`), sql`, `)})`);
 
-    const docMap = new Map(docs.map((doc) => [doc.id, doc.title]));
+    const docMap = new Map(docs.map((doc) => [doc.id, doc.title ?? 'Unknown']));
 
     return results.map((result) => ({
       content: result.content,
-      title: docMap.get(result.docId) || 'Unknown',
+      title: (docMap.get(result.docId) ?? 'Unknown') as string,
       similarity: result.similarity,
     }));
   } catch (error) {

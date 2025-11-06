@@ -74,7 +74,7 @@ export function QuizQuestionList({ questions }: QuizQuestionListProps) {
                       {question.questionSubtext && (
                         <p className="text-sm text-gray-500 mt-1">{question.questionSubtext}</p>
                       )}
-                      {question.options && Array.isArray(question.options) && (
+                      {question.options && Array.isArray(question.options) ? (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {question.options.slice(0, 3).map((opt: any, idx: number) => (
                             <span
@@ -90,7 +90,7 @@ export function QuizQuestionList({ questions }: QuizQuestionListProps) {
                             </span>
                           )}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-4">

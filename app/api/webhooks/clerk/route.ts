@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { users, tenants, organizationMembers } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Clerk Webhook Handler
@@ -244,6 +244,8 @@ async function handleMembershipDeleted(data: any) {
   });
 
   await db.delete(organizationMembers)
-    .where(eq(organizationMembers.clerkOrgId, data.organization.id))
-    .where(eq(organizationMembers.clerkUserId, data.public_user_data.user_id));
+    .where(and(
+      eq(organizationMembers.clerkOrgId, data.organization.id),
+      eq(organizationMembers.clerkUserId, data.public_user_data.user_id)
+    ));
 }
