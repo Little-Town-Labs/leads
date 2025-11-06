@@ -117,6 +117,12 @@ export function extractSubdomain(hostname: string): string | null {
     return null; // Just localhost, no subdomain
   }
 
+  // Ignore Vercel preview/deployment URLs (*.vercel.app)
+  // These are not tenant subdomains, they're deployment URLs
+  if (host.endsWith('.vercel.app')) {
+    return null;
+  }
+
   // For production domains (e.g., lead-agent.leadagent.com)
   if (parts.length >= 3) {
     // Don't treat 'www' as a tenant subdomain
