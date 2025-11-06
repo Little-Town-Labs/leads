@@ -16,10 +16,12 @@ export default clerkMiddleware((auth, request: NextRequest) => {
   const hostname = request.headers.get('host') || '';
   const { pathname } = request.nextUrl;
 
-  // Skip subdomain routing for static files and some paths
+  // Skip subdomain routing for static files, auth pages, and API routes
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') ||
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up') ||
     pathname.startsWith('/favicon.ico')
   ) {
     return NextResponse.next();
