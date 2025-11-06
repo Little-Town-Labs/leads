@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Bot, Workflow, ArrowRight, CheckCircle, Users, Sparkles, Target, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 export default function Home() {
   return (
@@ -25,12 +26,21 @@ export default function Home() {
             <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
-            <Link href="/assessment" className="text-muted-foreground hover:text-foreground transition-colors">
-              DDIP Assessment
-            </Link>
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
+
+            {/* Only show Dashboard link to signed-in users */}
+            <SignedIn>
+              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+
+            {/* Show Sign In button to non-authenticated users */}
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="outline" size="sm">Sign In</Button>
+              </SignInButton>
+            </SignedOut>
           </nav>
         </div>
       </header>
