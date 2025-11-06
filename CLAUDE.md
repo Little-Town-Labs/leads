@@ -1,123 +1,196 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Development guide for Claude Code when working with this repository.
 
 ## Overview
 
-Lead Agent is an inbound lead qualification and research system that uses AI-powered workflows for automated lead processing with human-in-the-loop approval via Slack. Built with Next.js 16, Vercel AI SDK, and Workflow DevKit.
+Multi-tenant SaaS platform for AI-powered lead qualification with subdomain routing, Clerk Organizations, and durable workflow execution.
 
-## Development Commands
+**Stack**: Next.js 16 (App Router), Drizzle ORM, Neon PostgreSQL, Clerk Auth, Vercel AI SDK, Workflow DevKit
+
+## Commands
 
 ```bash
-# Install dependencies (use pnpm preferred)
-pnpm install
-
-# Run development server (http://localhost:3000)
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
+pnpm install          # Install dependencies
+pnpm dev              # Development server (http://localhost:3000)
+pnpm build            # Production build
+pnpm db:migrate       # Run database migrations
+pnpm db:push          # Push schema changes
+pnpm db:studio        # Open Drizzle Studio
 ```
 
 ## Architecture
 
-### Request Flow
+### Multi-Tenant Data Model
 
-1. **Form Submission** (`app/api/submit/route.ts`) - POST endpoint validates form data with Zod and starts workflow
-2. **Workflow Execution** (`workflows/inbound/`) - Durable workflow with 'use workflow' directive
-3. **Research Step** - AI SDK Agent with tools (search, fetchUrl, crmSearch, etc.)
-4. **Qualification Step** - `generateObject` with structured output
-5. **Email Generation** - `generateText` for personalized response
-6. **Human Approval** - Slack message with interactive buttons
-7. **Slack Webhook** (`app/api/slack/route.ts`) - Handles approve/reject actions
+**Database Schema** ([db/schema.ts](db/schema.ts)):
+```typescript
+// All tables include organizationId for tenant isolation
+organizations      // Synced from Clerk via webhook
+users             // Synced from Clerk via webhook
+organizationMembers // Links users to organizations
+leads             // Lead data per organization
+quizzes           // Custom assessment quizzes per org
+```
 
-### Workflow DevKit Integration
+**Subdomain Routing** ([middleware.ts](middleware.ts)):
+- Extracts subdomain from host header
+- Matches to `organizations.subdomain`
+- Sets in request headers for route handlers
+- Falls back to organization selection page
 
-Workflows use special directives:
-- `'use workflow'` - Marks async function as durable workflow
-- `'use step'` - Marks individual steps for retry/recovery
+### Workflow Execution
 
-Workflows are started with `start(workflowInbound, [data])` and run in the background.
+**Lead Processing Flow**:
+1. Form submission → [app/api/submit/route.ts](app/api/submit/route.ts) validates with Zod
+2. `start(workflowInbound, [data])` kicks off durable workflow
+3. **Research step** → AI Agent with tools (search, fetchUrl, crmSearch)
+4. **Qualification step** → `generateObject` with structured schema
+5. **Email generation** → `generateText` for personalized outreach
+6. **Human approval** → Dashboard or Slack with approve/reject
+7. **Send email** → On approval (placeholder to implement)
+
+**Workflow DevKit Directives**:
+- `'use workflow'` → Marks function as durable workflow
+- `'use step'` → Marks step for automatic retry/recovery
+- Start workflows: `start(workflowFunction, [args])`
 
 ### AI SDK Patterns
 
-**Agent Class** (`lib/services.ts:197-220`):
-- Uses `Experimental_Agent` for autonomous research
-- Configure with `stopWhen: [stepCountIs(20)]` to limit iterations
-- Tools are defined with `tool()` helper and Zod schemas
+**Agent Class** ([lib/services.ts:197-220](lib/services.ts#L197-L220)):
+```typescript
+const agent = new Experimental_Agent({
+  model: aiGateway('openai/gpt-4o'),
+  stopWhen: [stepCountIs(20)], // Prevent runaway
+  tools: { search, fetchUrl, crmSearch, ... }
+});
+```
 
-**Structured Generation**:
-- `generateObject` for qualification with schema validation
+**Structured Output**:
+- `generateObject` with Zod schema for qualification
 - `generateText` for email composition
-- Model configured via Vercel AI Gateway: `'openai/gpt-5'`
+- Model: `aiGateway('openai/gpt-4o')` via Vercel AI Gateway
 
-### Slack Integration
+### Clerk Integration
 
-Uses `@slack/bolt` with `@vercel/slack-bolt` adapter:
-- Slack credentials are optional - app gracefully degrades if not configured
-- Interactive messages use Block Kit format (`lib/slack.ts:57-90`)
-- Action handlers in `app/api/slack/route.ts` respond to button clicks
-- `manifest.json` contains Slack app configuration
+**Organization Management**:
+- Webhook handler: [app/api/webhooks/clerk/route.ts](app/api/webhooks/clerk/route.ts)
+- Syncs organization and user data to database
+- Handles create/update/delete events
+- Organization switcher: [app/select-organization/page.tsx](app/select-organization/page.tsx)
+
+**Role-Based Access**:
+- Admin role can manage members and settings
+- Regular members can view analytics and leads
 
 ## Key Files
 
-- **`lib/services.ts`** - Core business logic: qualify, writeEmail, researchAgent, and tool definitions
-- **`lib/types.ts`** - Zod schemas for forms and qualification categories
-- **`workflows/inbound/index.ts`** - Main workflow orchestration
-- **`workflows/inbound/steps.ts`** - Individual workflow steps
-- **`app/api/submit/route.ts`** - Form submission endpoint with bot detection
-- **`app/api/slack/route.ts`** - Slack event and action handlers
+- [lib/services.ts](lib/services.ts) - Business logic: qualify, writeEmail, researchAgent, tool definitions
+- [lib/types.ts](lib/types.ts) - Zod schemas for forms and qualification categories
+- [lib/slack.ts](lib/slack.ts) - Slack integration (optional, graceful degradation)
+- [db/schema.ts](db/schema.ts) - Drizzle database schema with multi-tenant tables
+- [workflows/inbound/index.ts](workflows/inbound/index.ts) - Main workflow orchestration
+- [workflows/inbound/steps.ts](workflows/inbound/steps.ts) - Individual durable steps
+- [app/api/submit/route.ts](app/api/submit/route.ts) - Form submission with bot detection
+- [app/api/webhooks/clerk/route.ts](app/api/webhooks/clerk/route.ts) - Clerk organization sync
+- [middleware.ts](middleware.ts) - Subdomain routing and auth
 
-## Customization Points
+## Customization Guide
 
 ### Add Qualification Categories
-Edit `qualificationCategorySchema` in `lib/types.ts`:
+Edit [lib/types.ts](lib/types.ts):
 ```typescript
 export const qualificationCategorySchema = z.enum([
   'QUALIFIED',
   'UNQUALIFIED',
   'SUPPORT',
   'FOLLOW_UP',
-  'YOUR_CATEGORY' // add here
+  'YOUR_CATEGORY' // Add new category
 ]);
 ```
 
 ### Implement Service Placeholders
-`lib/services.ts` contains empty functions to implement:
-- `sendEmail()` (line 75) - Integrate with Sendgrid/Mailgun/Resend
-- `crmSearch.execute()` (line 114) - Connect to Salesforce/Hubspot/Snowflake
-- `techStackAnalysis.execute()` (line 128) - Fetch tech stack data
-- `queryKnowledgeBase.execute()` (line 182) - Query vector DB (Turbopuffer/Pinecone/Postgres)
+[lib/services.ts](lib/services.ts) has empty functions to connect:
+- `sendEmail()` → Sendgrid/Mailgun/Resend integration
+- `crmSearch.execute()` → Salesforce/HubSpot/Snowflake connector
+- `techStackAnalysis.execute()` → Tech stack detection API
+- `queryKnowledgeBase.execute()` → Vector DB (Turbopuffer/Pinecone/pgvector)
 
 ### Add Agent Tools
-Define new tools in `lib/services.ts` with `tool()` helper, then add to `researchAgent.tools` object (line 211).
+In [lib/services.ts](lib/services.ts):
+```typescript
+const myTool = tool({
+  description: 'Tool description',
+  parameters: z.object({ ... }),
+  execute: async ({ param }) => { ... }
+});
 
-### Modify Prompts
-- Research agent system prompt: `lib/services.ts:199-210`
-- Qualification prompt: `lib/services.ts:27-29`
-- Email generation prompt: `lib/services.ts:44-46`
+// Add to agent tools object
+const agent = new Experimental_Agent({
+  tools: { search, fetchUrl, myTool }
+});
+```
 
-### Extend Workflow
-Add new steps to `workflows/inbound/index.ts` - each step function must have `'use step'` directive.
+### Customize Prompts
+All prompts in [lib/services.ts](lib/services.ts):
+- Research agent system prompt → `researchAgent()` function
+- Qualification prompt → `qualify()` function
+- Email generation prompt → `writeEmail()` function
+
+### Extend Workflows
+Add steps to [workflows/inbound/index.ts](workflows/inbound/index.ts):
+```typescript
+async function newStep() {
+  'use step';
+  // Step logic
+}
+
+export async function workflowInbound(data: LeadFormData) {
+  'use workflow';
+  const research = await researchStep(data);
+  const custom = await newStep(); // Add here
+  // ...
+}
+```
 
 ## Environment Variables
 
-Required:
-- `AI_GATEWAY_API_KEY` - Vercel AI Gateway for model access
-- `EXA_API_KEY` - Exa.ai for web search
+**Required**:
+```bash
+DATABASE_URL                         # Neon PostgreSQL connection string
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY    # Clerk public key
+CLERK_SECRET_KEY                     # Clerk secret key
+CLERK_WEBHOOK_SECRET                 # Clerk webhook signing secret
+AI_GATEWAY_API_KEY                   # Vercel AI Gateway API key
+EXA_API_KEY                          # Exa.ai search API key
+```
 
-Optional (Slack features disabled without these):
-- `SLACK_BOT_TOKEN`
-- `SLACK_SIGNING_SECRET`
-- `SLACK_CHANNEL_ID`
+**Optional** (Slack integration disabled without these):
+```bash
+SLACK_BOT_TOKEN                      # xoxb-... bot token
+SLACK_SIGNING_SECRET                 # Slack app signing secret
+SLACK_CHANNEL_ID                     # C... channel ID for notifications
+```
 
-## Important Implementation Notes
+## Implementation Notes
 
-- Bot detection using `botid` package in submit endpoint
-- Workflow DevKit provides automatic retries and durability
-- Slack app initialization is deferred and conditional
-- Agent stops after 20 steps by default to prevent runaway execution
-- Research results are truncated to 500 chars in Slack messages
+**Security**:
+- Bot detection using `botid` package in form submission
+- All database queries scoped by `organizationId` for tenant isolation
+- Clerk middleware protects dashboard routes
+- CSRF protection via Clerk session tokens
+
+**Reliability**:
+- Workflow DevKit provides automatic retries and crash recovery
+- Agent limited to 20 steps to prevent runaway execution
+- Graceful degradation when Slack credentials missing
+
+**Multi-Tenancy**:
+- Subdomain extracted via middleware and passed to routes
+- Organization data synced from Clerk via webhook
+- All queries filtered by `organizationId` from auth context
+
+**Performance**:
+- Research results truncated to 500 chars in Slack messages
+- Database uses indexes on `organizationId` for fast queries
+- Workflow runs in background, doesn't block form submission

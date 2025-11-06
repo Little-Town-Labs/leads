@@ -16,11 +16,23 @@ export default async function AnalyticsPage() {
   const orgDb = await getOrgDb();
   const leads = await orgDb.leads.findMany();
   const counts = await orgDb.leads.countByStatus();
+  const workflows = await orgDb.workflows.findMany();
 
   // Calculate statistics
   const totalLeads = leads.length;
   const approvalRate = totalLeads > 0 ? (counts.approved / totalLeads) * 100 : 0;
-  const avgProcessingTime = '2.5'; // Placeholder - calculate from actual workflow data
+
+  // Calculate average processing time from completed workflows
+  const completedWorkflows = workflows.filter(w => w.completedAt && w.createdAt);
+  const avgProcessingTimeMs = completedWorkflows.length > 0
+    ? completedWorkflows.reduce((sum, w) => {
+        const duration = w.completedAt!.getTime() - w.createdAt.getTime();
+        return sum + duration;
+      }, 0) / completedWorkflows.length
+    : 0;
+
+  // Convert to hours with 1 decimal place
+  const avgProcessingTime = (avgProcessingTimeMs / (1000 * 60 * 60)).toFixed(1);
 
   // Group by qualification category
   const categoryStats = leads.reduce((acc, lead) => {

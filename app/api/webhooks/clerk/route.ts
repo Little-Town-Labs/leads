@@ -1,6 +1,9 @@
 import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
+import { db } from '@/db';
+import { users, tenants, organizationMembers } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Clerk Webhook Handler
@@ -134,36 +137,35 @@ async function handleUserCreated(data: any) {
     lastName: data.last_name,
   });
 
-  // TODO: Create user record in your database
-  // Example:
-  // await db.insert(users).values({
-  //   clerkUserId: data.id,
-  //   email: data.email_addresses?.[0]?.email_address,
-  //   firstName: data.first_name,
-  //   lastName: data.last_name,
-  // });
+  await db.insert(users).values({
+    clerkUserId: data.id,
+    email: data.email_addresses?.[0]?.email_address || '',
+    firstName: data.first_name,
+    lastName: data.last_name,
+    imageUrl: data.image_url,
+  });
 }
 
 async function handleUserUpdated(data: any) {
   console.log('User updated:', data.id);
 
-  // TODO: Update user record in your database
-  // Example:
-  // await db.update(users)
-  //   .set({
-  //     email: data.email_addresses?.[0]?.email_address,
-  //     firstName: data.first_name,
-  //     lastName: data.last_name,
-  //   })
-  //   .where(eq(users.clerkUserId, data.id));
+  await db.update(users)
+    .set({
+      email: data.email_addresses?.[0]?.email_address || '',
+      firstName: data.first_name,
+      lastName: data.last_name,
+      imageUrl: data.image_url,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.clerkUserId, data.id));
 }
 
 async function handleUserDeleted(data: any) {
   console.log('User deleted:', data.id);
 
-  // TODO: Delete or soft-delete user record
-  // Example:
-  // await db.delete(users).where(eq(users.clerkUserId, data.id));
+  // Delete user record and cascade to organization memberships
+  await db.delete(users).where(eq(users.clerkUserId, data.id));
+  await db.delete(organizationMembers).where(eq(organizationMembers.clerkUserId, data.id));
 }
 
 async function handleOrganizationCreated(data: any) {
@@ -173,55 +175,52 @@ async function handleOrganizationCreated(data: any) {
     slug: data.slug,
   });
 
-  // TODO: Create tenant record in your database
-  // This is important for multi-tenant setup!
-  // Example:
-  // await db.insert(tenants).values({
-  //   clerkOrgId: data.id,
-  //   name: data.name,
-  //   slug: data.slug,
-  //   subdomain: data.slug, // Use org slug as subdomain
-  //   branding: {
-  //     primaryColor: '#3B82F6',
-  //     secondaryColor: '#10B981',
-  //   },
-  //   landingPage: {
-  //     heroTitle: `Welcome to ${data.name}`,
-  //     heroSubtitle: 'Complete our assessment to get started',
-  //     ctaText: 'Take Assessment',
-  //   },
-  //   settings: {
-  //     enableAiResearch: true,
-  //     qualificationThreshold: 60,
-  //   },
-  //   usageLimits: {
-  //     maxQuizCompletionsMonthly: 100,
-  //     maxAiWorkflowsMonthly: 50,
-  //     maxTeamMembers: 5,
-  //   },
-  // });
+  await db.insert(tenants).values({
+    clerkOrgId: data.id,
+    name: data.name,
+    slug: data.slug,
+    subdomain: data.slug, // Use org slug as subdomain
+    branding: {
+      primaryColor: '#3B82F6',
+      secondaryColor: '#10B981',
+    },
+    landingPage: {
+      heroTitle: `Welcome to ${data.name}`,
+      heroSubtitle: 'Complete our assessment to get started',
+      ctaText: 'Take Assessment',
+    },
+    settings: {
+      enableAiResearch: true,
+      qualificationThreshold: 60,
+    },
+    usageLimits: {
+      maxQuizCompletionsMonthly: 100,
+      maxAiWorkflowsMonthly: 50,
+      maxTeamMembers: 5,
+    },
+  });
 }
 
 async function handleOrganizationUpdated(data: any) {
   console.log('Organization updated:', data.id);
 
-  // TODO: Update tenant record
-  // Example:
-  // await db.update(tenants)
-  //   .set({
-  //     name: data.name,
-  //     slug: data.slug,
-  //   })
-  //   .where(eq(tenants.clerkOrgId, data.id));
+  await db.update(tenants)
+    .set({
+      name: data.name,
+      slug: data.slug,
+      subdomain: data.slug,
+      updatedAt: new Date(),
+    })
+    .where(eq(tenants.clerkOrgId, data.id));
 }
 
 async function handleOrganizationDeleted(data: any) {
   console.log('Organization deleted:', data.id);
 
-  // TODO: Delete or soft-delete tenant
-  // Be careful - this should cascade to delete all tenant data
-  // Example:
-  // await db.delete(tenants).where(eq(tenants.clerkOrgId, data.id));
+  // Delete tenant - this will cascade to delete org-specific data
+  await db.delete(tenants).where(eq(tenants.clerkOrgId, data.id));
+  // Also clean up organization memberships
+  await db.delete(organizationMembers).where(eq(organizationMembers.clerkOrgId, data.id));
 }
 
 async function handleMembershipCreated(data: any) {
@@ -231,8 +230,11 @@ async function handleMembershipCreated(data: any) {
     role: data.role,
   });
 
-  // TODO: Track organization membership if needed
-  // This is useful if you have a separate members table
+  await db.insert(organizationMembers).values({
+    clerkOrgId: data.organization.id,
+    clerkUserId: data.public_user_data.user_id,
+    role: data.role,
+  });
 }
 
 async function handleMembershipDeleted(data: any) {
@@ -241,5 +243,7 @@ async function handleMembershipDeleted(data: any) {
     userId: data.public_user_data.user_id,
   });
 
-  // TODO: Remove membership tracking
+  await db.delete(organizationMembers)
+    .where(eq(organizationMembers.clerkOrgId, data.organization.id))
+    .where(eq(organizationMembers.clerkUserId, data.public_user_data.user_id));
 }

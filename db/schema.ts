@@ -1,6 +1,49 @@
 import { pgTable, text, uuid, timestamp, jsonb, index, integer, boolean, unique } from 'drizzle-orm/pg-core';
 
 /**
+ * Users table - stores user data synced from Clerk
+ * Maps to Clerk users for local database operations
+ */
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    clerkUserId: text('clerk_user_id').notNull().unique(), // Maps to Clerk user ID
+    email: text('email').notNull(),
+    firstName: text('first_name'),
+    lastName: text('last_name'),
+    imageUrl: text('image_url'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    clerkUserIdIndex: index('users_clerk_user_id_idx').on(table.clerkUserId),
+    emailIndex: index('users_email_idx').on(table.email),
+  })
+);
+
+/**
+ * Organization Members table - tracks user membership in organizations
+ * Synced from Clerk organization memberships
+ */
+export const organizationMembers = pgTable(
+  'organization_members',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    clerkOrgId: text('clerk_org_id').notNull(),
+    clerkUserId: text('clerk_user_id').notNull(),
+    role: text('role').notNull(), // admin, member
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    orgUserUnique: unique('org_user_unique').on(table.clerkOrgId, table.clerkUserId),
+    clerkOrgIdIndex: index('org_members_clerk_org_id_idx').on(table.clerkOrgId),
+    clerkUserIdIndex: index('org_members_clerk_user_id_idx').on(table.clerkUserId),
+  })
+);
+
+/**
  * Tenants table - stores tenant/organization configuration
  * Maps to Clerk organizations but adds custom branding and settings
  */
@@ -259,7 +302,62 @@ export const emailSends = pgTable(
   })
 );
 
+/**
+ * Knowledge Base Documents table - stores documents/content for AI research
+ * Supports vector similarity search for retrieval-augmented generation (RAG)
+ */
+export const knowledgeBaseDocs = pgTable(
+  'knowledge_base_docs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orgId: text('org_id').notNull(),
+    title: text('title').notNull(),
+    content: text('content').notNull(), // Full document content
+    contentType: text('content_type').notNull(), // document, faq, product_info, etc.
+    metadata: jsonb('metadata').$type<{
+      source?: string; // URL, file name, etc.
+      author?: string;
+      tags?: string[];
+      category?: string;
+    }>(),
+    embedding: text('embedding'), // JSON string of vector embedding (1536 dims for OpenAI)
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIndex: index('kb_docs_org_id_idx').on(table.orgId),
+    contentTypeIndex: index('kb_docs_content_type_idx').on(table.contentType),
+  })
+);
+
+/**
+ * Knowledge Base Chunks table - splits large documents into searchable chunks
+ * Each chunk gets its own embedding for more precise semantic search
+ */
+export const knowledgeBaseChunks = pgTable(
+  'knowledge_base_chunks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orgId: text('org_id').notNull(),
+    docId: uuid('doc_id').references(() => knowledgeBaseDocs.id, { onDelete: 'cascade' }),
+    chunkIndex: integer('chunk_index').notNull(), // Position in document
+    content: text('content').notNull(), // Chunk text (500-1000 chars)
+    embedding: text('embedding'), // JSON string of vector embedding
+    tokenCount: integer('token_count'), // For tracking API usage
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    orgIdIndex: index('kb_chunks_org_id_idx').on(table.orgId),
+    docIdIndex: index('kb_chunks_doc_id_idx').on(table.docId),
+  })
+);
+
 // Type exports for TypeScript
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type NewOrganizationMember = typeof organizationMembers.$inferInsert;
 export type Tenant = typeof tenants.$inferSelect;
 export type NewTenant = typeof tenants.$inferInsert;
 export type Lead = typeof leads.$inferSelect;
@@ -276,3 +374,7 @@ export type EmailSequence = typeof emailSequences.$inferSelect;
 export type NewEmailSequence = typeof emailSequences.$inferInsert;
 export type EmailSend = typeof emailSends.$inferSelect;
 export type NewEmailSend = typeof emailSends.$inferInsert;
+export type KnowledgeBaseDoc = typeof knowledgeBaseDocs.$inferSelect;
+export type NewKnowledgeBaseDoc = typeof knowledgeBaseDocs.$inferInsert;
+export type KnowledgeBaseChunk = typeof knowledgeBaseChunks.$inferSelect;
+export type NewKnowledgeBaseChunk = typeof knowledgeBaseChunks.$inferInsert;

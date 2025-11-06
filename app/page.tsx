@@ -395,7 +395,9 @@ export default function Home() {
                     <span className="text-sm">Custom branding (subdomain)</span>
                   </li>
                 </ul>
-                <Button variant="outline" className="w-full">Get Started</Button>
+                <Link href="/sign-up">
+                  <Button variant="outline" className="w-full">Get Started</Button>
+                </Link>
               </div>
 
               {/* Professional */}
@@ -438,7 +440,9 @@ export default function Home() {
                     <span className="text-sm">A/B testing</span>
                   </li>
                 </ul>
-                <Button className="w-full">Get Started</Button>
+                <Link href="/sign-up">
+                  <Button className="w-full">Get Started</Button>
+                </Link>
               </div>
 
               {/* Enterprise */}
@@ -478,7 +482,9 @@ export default function Home() {
                     <span className="text-sm">Dedicated success manager</span>
                   </li>
                 </ul>
-                <Button variant="outline" className="w-full">Contact Sales</Button>
+                <a href="mailto:sales@leadagent.com">
+                  <Button variant="outline" className="w-full">Contact Sales</Button>
+                </a>
               </div>
             </div>
           </div>

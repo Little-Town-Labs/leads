@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Settings, BarChart3 } from 'lucide-react';
+import { Home, Users, Settings, BarChart3, Settings2 } from 'lucide-react';
 
 export default async function DashboardLayout({
   children,
@@ -66,6 +66,13 @@ export default async function DashboardLayout({
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
+              </Link>
+              <Link
+                href="/admin"
+                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-900"
+              >
+                <Settings2 className="w-4 h-4 mr-2" />
+                Admin
               </Link>
             </nav>
 

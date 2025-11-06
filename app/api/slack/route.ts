@@ -54,7 +54,11 @@ if (slackApp && receiver) {
 
         // Send email to the lead
         if (lead && workflow.emailDraft) {
-          await sendEmail(workflow.emailDraft);
+          await sendEmail(
+            lead.email,
+            `Re: Your inquiry from ${lead.company || 'your company'}`,
+            workflow.emailDraft
+          );
         }
       }
 

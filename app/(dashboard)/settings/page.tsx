@@ -2,6 +2,8 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { hasPermission } from '@/lib/permissions';
 import { redirect } from 'next/navigation';
 import { Users, Crown, Shield, Eye } from 'lucide-react';
+import { InviteMemberButton } from './invite-member-button';
+import { ManageMemberButton } from './manage-member-button';
 
 export default async function SettingsPage() {
   const { orgId } = await auth();
@@ -132,11 +134,7 @@ export default async function SettingsPage() {
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900">Team Members</h2>
-          {canManageTeam && (
-            <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-              Invite Member
-            </button>
-          )}
+          {canManageTeam && <InviteMemberButton />}
         </div>
 
         <div className="overflow-x-auto">
@@ -213,9 +211,11 @@ export default async function SettingsPage() {
                     </td>
                     {canManageTeam && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          Manage
-                        </button>
+                        <ManageMemberButton
+                          userId={membership.publicUserData.userId}
+                          currentRole={membership.role}
+                          userName={`${user.firstName} ${user.lastName}`}
+                        />
                       </td>
                     )}
                   </tr>

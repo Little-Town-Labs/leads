@@ -71,12 +71,36 @@ export async function humanFeedback(
 }
 
 /**
- * Send an email
+ * Send an email using Resend
  */
-export async function sendEmail(email: string) {
-  /**
-   * send email using provider like sendgrid, mailgun, resend etc.
-   */
+export async function sendEmail(
+  to: string,
+  subject: string,
+  content: string,
+  from?: string
+) {
+  const { Resend } = await import('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: from || 'Lead Agent <onboarding@resend.dev>', // Update with your verified domain
+      to: [to],
+      subject: subject,
+      html: content,
+    });
+
+    if (error) {
+      console.error('Error sending email:', error);
+      throw error;
+    }
+
+    console.log('Email sent successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    throw error;
+  }
 }
 
 /**
@@ -176,17 +200,29 @@ const search = tool({
  * Query the knowledge base
  */
 const queryKnowledgeBase = tool({
-  description: 'Query the knowledge base for the given query.',
+  description: 'Query the organization knowledge base for relevant information using semantic search.',
   inputSchema: z.object({
-    query: z.string()
+    query: z.string().describe('The question or topic to search for in the knowledge base'),
+    orgId: z.string().describe('The organization ID to search within')
   }),
-  execute: async ({ query }: { query: string }) => {
-    /**
-     * Query the knowledge base for the given query
-     * - ex: pull from turbopuffer, pinecone, postgres, snowflake, etc.
-     * Return the context from the knowledge base
-     */
-    return 'Context from knowledge base for the given query';
+  execute: async ({ query, orgId }: { query: string; orgId: string }) => {
+    const { searchKnowledgeBase } = await import('@/lib/knowledge-base');
+
+    // Search for top 3 most relevant chunks
+    const results = await searchKnowledgeBase(orgId, query, 3);
+
+    if (results.length === 0) {
+      return 'No relevant information found in the knowledge base.';
+    }
+
+    // Format results as context
+    const context = results
+      .map((result, i) => {
+        return `[${i + 1}] From "${result.title}" (relevance: ${(result.similarity * 100).toFixed(1)}%)\n${result.content}`;
+      })
+      .join('\n\n');
+
+    return `Found ${results.length} relevant knowledge base entries:\n\n${context}`;
   }
 });
 
