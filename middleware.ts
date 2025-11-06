@@ -16,7 +16,7 @@ export default clerkMiddleware((auth, request: NextRequest) => {
   const hostname = request.headers.get('host') || '';
   const { pathname } = request.nextUrl;
 
-  // Skip subdomain routing for static files, auth pages, and API routes
+  // Skip subdomain routing for static files, auth pages, webhooks, and API routes
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') ||
