@@ -2,21 +2,31 @@
 
 <img width="1819" height="1738" alt="hero" src="https://github.com/user-attachments/assets/347757fd-ad00-487d-bdd8-97113f13878b" />
 
-An inbound lead qualification and research agent built with [Next.js](http://nextjs.org/), [AI SDK](https://ai-sdk.dev/), [Workflow DevKit](https://useworkflow.dev/), and the [Vercel Slack Adapter](https://github.com/vercel-labs/slack-bolt). Hosted on the [Vercel AI Cloud](https://vercel.com/blog/the-ai-cloud-a-unified-platform-for-ai-workloads).
+A **multi-tenant SaaS platform** for AI-powered lead qualification and research. Built with [Next.js 16](http://nextjs.org/), [Clerk](https://clerk.com), [Drizzle ORM](https://orm.drizzle.team), [Neon Database](https://neon.tech), [Vercel AI SDK](https://ai-sdk.dev/), and [Workflow DevKit](https://useworkflow.dev/).
 
-**_This is meant to serve as a reference architecture to be adapted to the needs of your specific organization._**
+## 🎯 What This Is
 
-## Overview
+An intelligent lead qualification system that:
+- Captures leads through customized assessment quizzes per tenant
+- Automatically researches and qualifies leads using AI
+- Generates personalized outreach emails
+- Provides human-in-the-loop approval via Slack or built-in dashboard
+- Supports multiple organizations with complete data isolation
 
-Lead agent app that captures a lead in a contact sales form and then kicks off a qualification workflow and deep research agent. It integrates with Slack to send and receive messages for human-in-the-loop feedback.
+**Multi-Tenant Architecture**: Each organization gets their own branded subdomain, custom quiz, and isolated data.
 
-- **Immediate Response** - Returns a success response to the user upon submission
-- **Workflows** - Uses Workflow DevKit to kick off durable background tasks
-  - **Deep Research Agent** - Conducts comprehensive research on the lead with a deep research agent
-  - **Qualify Lead** - Uses `generateObject` to categorize the lead based on the lead data and research report
-  - **Write Email** - Generates a personalized response email
-  - **Human-in-the-Loop** - Sends to Slack for human approval before sending
-  - **Slack Webhook** - Catches a webhook event from Slack to approve or deny the email
+## 📋 Current Status
+
+✅ **Phase 1 & 2 Complete**: Multi-tenant infrastructure with subdomain routing
+⏭️ **Phase 3 Next**: Quiz implementation for tenant-specific assessments
+
+### Active Tenants
+1. **Lead Agent Demo** (`lead-agent` subdomain) - Product demonstration
+2. **Timeless Technology Solutions** (`timeless-tech` subdomain) - DDIP business
+
+## 🚀 Quick Start
+
+See [NEXT-STEPS.md](NEXT-STEPS.md) for setup instructions and [docs/](docs/) for comprehensive documentation.
 
 ## Deploy with Vercel
 
@@ -45,71 +55,74 @@ Send email (on approval)
 ## Tech Stack
 
 - **Framework**: [Next.js 16](https://nextjs.org)
-- **Durable execution**: [Workflow DevKit](http://useworkflow.dev/)
+- **Database**: [Neon PostgreSQL](https://neon.tech) + [Drizzle ORM](https://orm.drizzle.team)
+- **Authentication**: [Clerk](https://clerk.com) (with Organizations)
 - **AI**: [Vercel AI SDK](https://ai-sdk.dev/) with [AI Gateway](https://vercel.com/ai-gateway)
-- **Human-in-the-Loop**: [Slack Bolt + Vercel Slack Bolt adapter](https://vercel.com/templates/ai/slack-agent-template)
+- **Workflows**: [Workflow DevKit](http://useworkflow.dev/) (durable execution)
+- **Human-in-the-Loop**: Built-in dashboard + optional [Slack integration](https://vercel.com/templates/ai/slack-agent-template)
 - **Web Search**: [Exa.ai](https://exa.ai/)
 
-## Using this template
+## 📂 Documentation
 
-This repo contains various empty functions to serve as placeholders. To fully use this template, fill out empty functions in `lib/services.ts`.
-
-Example: Add a custom implementation of searching your own knowledge base in `queryKnowledgeBase`.
-
-Additionally, update prompts to meet the needs of your specific business function.
+- **[NEXT-STEPS.md](NEXT-STEPS.md)** - Current status and immediate next steps
+- **[CLAUDE.md](CLAUDE.md)** - Development guidelines and code patterns
+- **[CLERK_WEBHOOK_SETUP.md](CLERK_WEBHOOK_SETUP.md)** - Clerk webhook configuration guide
+- **[docs/](docs/)** - Comprehensive documentation
+  - [Business Proposal](docs/PROPOSAL.md) - Product vision and strategy
+  - [Implementation Summary](docs/IMPLEMENTATION-SUMMARY.md) - What's been built
+  - [Deployment Guide](docs/DEPLOYMENT.md) - Vercel deployment walkthrough
+  - [Testing Guide](docs/MULTI-TENANT-TESTING.md) - Local subdomain testing
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- pnpm (recommended) or npm
-- Slack workspace with bot token and signing secret
-  - Reference the [Vercel Slack agent template docs](https://github.com/vercel-partner-solutions/slack-agent-template) for creating a Slack app
-  - You can set the permissions and configuration for your Slack app in the `manifest.json` file in the root of this repo. Paste this manifest file into the Slack dashboard when creating the app
-  - **Be sure to update the request URL for interactivity and event subscriptions to be your production domain URL**
-  - If Slack environment variables are not set, the app will still run with the Slack bot disabled
-- [Vercel AI Gateway API Key](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys%3Futm_source%3Dai_gateway_landing_page&title=Get+an+API+Key)
+- pnpm (recommended)
+- [Neon Database](https://neon.tech) account
+- [Clerk](https://clerk.com) account
+- [Vercel AI Gateway API Key](https://vercel.com/ai-gateway)
 - [Exa API key](https://exa.ai/)
+- (Optional) Slack workspace for notifications
 
 ### Installation
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/vercel-labs/lead-agent.git
-cd lead-agent
-```
-
-2. Install dependencies:
-
+1. Install dependencies:
 ```bash
 pnpm install
 ```
 
-3. Set up environment variables:
-
+2. Set up environment variables:
 ```bash
 cp .env.example .env.local
 ```
 
-Configure the following variables:
-
+Configure these required variables:
 ```bash
-# Vercel AI Gateway API Key
-AI_GATEWAY_API_KEY
+# Database
+DATABASE_URL=postgresql://...
 
-# Slack Bot
-SLACK_BOT_TOKEN
-SLACK_SIGNING_SECRET
-SLACK_CHANNEL_ID
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+CLERK_WEBHOOK_SECRET=whsec_...
 
-# Exa API Key
-EXA_API_KEY
+# AI Services
+AI_GATEWAY_API_KEY=...
+EXA_API_KEY=...
+
+# Optional: Slack
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...
+SLACK_CHANNEL_ID=C...
 ```
 
-4. Run the development server:
+3. Run database migrations:
+```bash
+pnpm db:migrate
+```
 
+4. Start the development server:
 ```bash
 pnpm dev
 ```
