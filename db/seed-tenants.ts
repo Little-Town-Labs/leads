@@ -91,7 +91,7 @@ const TIMELESS_TECH_TENANT: NewTenant = {
   slug: 'timeless-tech',
 
   branding: {
-    logoUrl: '/logo-timeless.svg',
+    logoUrl: '/timeless/hero-image3.png',
     primaryColor: '#6366F1', // Indigo (matching current /assessment page)
     secondaryColor: '#EC4899', // Pink
     fontFamily: 'Inter',
