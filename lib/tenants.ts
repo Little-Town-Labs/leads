@@ -127,7 +127,21 @@ export function extractSubdomain(hostname: string): string | null {
     return null; // No tenant subdomain (just project.vercel.app)
   }
 
-  // For production domains (e.g., lead-agent.leadagent.com)
+  // Handle custom production domain: leads.littletownlabs.site
+  // Base domain: leads.littletownlabs.site (3 parts) - no subdomain
+  // Tenant subdomain: timeless-tech.leads.littletownlabs.site (4 parts) - extract subdomain
+  if (host.endsWith('.littletownlabs.site') || host === 'leads.littletownlabs.site') {
+    if (parts.length >= 4) {
+      // Don't treat 'www' as a tenant subdomain
+      if (parts[0] === 'www') {
+        return null;
+      }
+      return parts[0]; // Return subdomain (e.g., 'timeless-tech')
+    }
+    return null; // Base domain, no subdomain
+  }
+
+  // For other production domains (e.g., lead-agent.leadagent.com)
   if (parts.length >= 3) {
     // Don't treat 'www' as a tenant subdomain
     if (parts[0] === 'www') {
@@ -136,7 +150,7 @@ export function extractSubdomain(hostname: string): string | null {
     return parts[0]; // Return subdomain
   }
 
-  // Main domain (leadagent.com) - no subdomain
+  // Main domain - no subdomain
   return null;
 }
 
