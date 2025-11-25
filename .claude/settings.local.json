@@ -5,7 +5,9 @@
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
       "Bash(npx:*)",
-      "Bash(pnpm dev)"
+      "Bash(pnpm dev)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm type-check:*)"
     ],
     "deny": [],
     "ask": []

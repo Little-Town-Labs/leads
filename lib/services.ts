@@ -143,16 +143,113 @@ export const crmSearch = tool({
 });
 
 /**
- * Tech-stack analysis tool
+ * Tech-stack analysis tool using simple-wappalyzer
  */
+
+// Import simple-wappalyzer
+let simpleWappalyzer: any = null;
+
+async function getWappalyzer() {
+  if (!simpleWappalyzer) {
+    simpleWappalyzer = (await import('simple-wappalyzer')).default;
+  }
+  return simpleWappalyzer;
+}
+
 export const techStackAnalysis = tool({
-  description: 'Return tech stack analysis for a domain.',
+  description: 'Analyze the tech stack of a website domain. Returns detected technologies with categories, versions, and confidence scores.',
   inputSchema: z.object({
-    domain: z.string().describe('Domain, e.g. "vercel.com"')
+    domain: z.string().describe('Domain, e.g. "vercel.com" or full URL "https://vercel.com"')
   }),
   execute: async ({ domain }) => {
-    // fetch the tech stack for the domain
-    return [];
+    try {
+      // Normalize URL
+      const url = domain.startsWith('http') ? domain : `https://${domain}`;
+
+      // Fetch the website with proper headers
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+
+      if (!response.ok) {
+        return `Failed to fetch ${url}: HTTP ${response.status}`;
+      }
+
+      const html = await response.text();
+      const headers = Object.fromEntries(response.headers);
+
+      // Get wappalyzer function and analyze
+      const wappalyzer = await getWappalyzer();
+      const result = await wappalyzer({
+        url,
+        html,
+        headers,
+        statusCode: response.status
+      });
+
+      // Format results for AI agent consumption
+      // Result is an array of technology objects
+      if (!result || result.length === 0) {
+        return `No technologies detected for ${domain}. The site may use custom-built solutions or technologies not in the detection database.`;
+      }
+
+      // Extract and format technologies
+      const technologies = result.map((app: any) => {
+        // Get primary category name
+        const categoryName = app.categories?.[0]?.name || 'Unknown';
+
+        return {
+          name: app.name,
+          category: categoryName,
+          version: app.version || 'N/A',
+          confidence: app.confidence || 100
+        };
+      });
+
+      // Group by category for better readability
+      const grouped = technologies.reduce((acc: any, tech: any) => {
+        const category = tech.category;
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(tech);
+        return acc;
+      }, {});
+
+      // Format as a readable report
+      let report = `Tech Stack Analysis for ${domain}:\n\n`;
+
+      for (const [category, techs] of Object.entries(grouped)) {
+        report += `${category}:\n`;
+        (techs as any[]).forEach(tech => {
+          const versionInfo = tech.version !== 'N/A' ? ` (v${tech.version})` : '';
+          const confidenceInfo = tech.confidence !== 100 ? ` [${tech.confidence}% confidence]` : '';
+          report += `  - ${tech.name}${versionInfo}${confidenceInfo}\n`;
+        });
+        report += '\n';
+      }
+
+      report += `Total technologies detected: ${technologies.length}`;
+
+      return report;
+
+    } catch (error: any) {
+      console.error('Tech stack analysis error:', error);
+
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        return `Timeout while analyzing ${domain}. The website may be slow or unreachable.`;
+      }
+
+      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+        return `Cannot reach ${domain}. The domain may not exist or is not accessible.`;
+      }
+
+      return `Error analyzing ${domain}: ${error.message}`;
+    }
   }
 });
 

@@ -14,6 +14,9 @@ Multi-tenant SaaS platform for AI-powered lead qualification with subdomain rout
 pnpm install          # Install dependencies
 pnpm dev              # Development server (http://localhost:3000)
 pnpm build            # Production build
+pnpm lint             # Run ESLint
+pnpm lint:fix         # Auto-fix ESLint issues
+pnpm type-check       # TypeScript type checking
 pnpm db:migrate       # Run database migrations
 pnpm db:push          # Push schema changes
 pnpm db:studio        # Open Drizzle Studio
@@ -110,11 +113,11 @@ export const qualificationCategorySchema = z.enum([
 ```
 
 ### Implement Service Placeholders
-[lib/services.ts](lib/services.ts) has empty functions to connect:
-- `sendEmail()` → Sendgrid/Mailgun/Resend integration
-- `crmSearch.execute()` → Salesforce/HubSpot/Snowflake connector
-- `techStackAnalysis.execute()` → Tech stack detection API
-- `queryKnowledgeBase.execute()` → Vector DB (Turbopuffer/Pinecone/pgvector)
+[lib/services.ts](lib/services.ts) has functions ready to extend:
+- `sendEmail()` → ✅ **Implemented** with Resend
+- `crmSearch.execute()` → Placeholder for Salesforce/HubSpot/Snowflake connector
+- `techStackAnalysis.execute()` → ✅ **Implemented** with simple-wappalyzer (free, unlimited)
+- `queryKnowledgeBase.execute()` → ✅ **Implemented** with pgvector
 
 ### Add Agent Tools
 In [lib/services.ts](lib/services.ts):
@@ -194,3 +197,11 @@ SLACK_CHANNEL_ID                     # C... channel ID for notifications
 - Research results truncated to 500 chars in Slack messages
 - Database uses indexes on `organizationId` for fast queries
 - Workflow runs in background, doesn't block form submission
+
+**Tech Stack Analysis**:
+- Uses `simple-wappalyzer` for free, unlimited technology detection
+- Detects 70-80% of technologies (CMS, frameworks, servers, analytics)
+- No external API required - runs locally in serverless functions
+- Update package quarterly: `pnpm update simple-wappalyzer`
+- Best detection for traditional websites, less accurate for SPAs
+- Tool available to AI agent during research phase
