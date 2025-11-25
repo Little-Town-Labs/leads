@@ -252,7 +252,7 @@ async function seedEmailSequences() {
   // Clear existing sequences for DEFAULT_ORG_ID (skip if error)
   try {
     await db.delete(emailSequences);
-  } catch (error) {
+  } catch {
     console.log('Note: Could not clear existing sequences (table might be empty)');
   }
 

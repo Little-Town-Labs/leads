@@ -4,7 +4,7 @@ import { getTenantBySubdomain } from '@/lib/tenants';
 import { checkBotId } from 'botid/server';
 import { start } from 'workflow/api';
 import { workflowInbound } from '@/workflows/inbound';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { ContactInfo } from '@/lib/quiz-types';
 

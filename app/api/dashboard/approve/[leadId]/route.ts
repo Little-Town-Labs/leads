@@ -3,7 +3,6 @@ import { db } from '@/db';
 import { leads, leadScores, workflows } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
-const DEFAULT_ORG_ID = 'default';
 const DEFAULT_USER_ID = 'system';
 
 /**

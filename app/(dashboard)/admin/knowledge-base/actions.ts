@@ -29,9 +29,9 @@ export async function createKnowledgeBaseDoc(formData: FormData) {
 
     revalidatePath('/admin/knowledge-base');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating knowledge base document:', error);
-    return { error: error.message || 'Failed to create document' };
+    return { error: error instanceof Error ? error.message : 'Failed to create document' };
   }
 }
 
@@ -49,9 +49,9 @@ export async function deleteKnowledgeBaseDoc(id: string) {
 
     revalidatePath('/admin/knowledge-base');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting knowledge base document:', error);
-    return { error: error.message || 'Failed to delete document' };
+    return { error: error instanceof Error ? error.message : 'Failed to delete document' };
   }
 }
 
@@ -70,8 +70,8 @@ export async function toggleDocumentActive(id: string, isActive: boolean) {
 
     revalidatePath('/admin/knowledge-base');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error toggling document:', error);
-    return { error: error.message || 'Failed to toggle document' };
+    return { error: error instanceof Error ? error.message : 'Failed to toggle document' };
   }
 }

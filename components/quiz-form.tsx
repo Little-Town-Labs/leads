@@ -18,12 +18,12 @@ type QuizFormProps = {
   questions: QuizQuestion[];
   tenantSlug: string;
   primaryColor: string;
-  onComplete: (responses: Record<string, any>) => Promise<void>;
+  onComplete: (responses: Record<string, unknown>) => Promise<void>;
 };
 
-export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: QuizFormProps) {
+export function QuizForm({ questions, primaryColor, onComplete }: QuizFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [responses, setResponses] = useState<Record<string, unknown>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentQuestion = questions[currentStep];
@@ -53,14 +53,16 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
   const validateCurrentQuestion = (): boolean => {
     if (!currentQuestion.isRequired) return true;
 
-    const answer = responses[currentQuestion.id];
+    const answer = responses[currentQuestion.id] as Record<string, unknown> | undefined;
 
     if (currentQuestion.questionType === 'contact_info') {
       // Check all required fields
-      const requiredFields = currentQuestion.options?.filter((opt: any) => opt.required) || [];
-      return requiredFields.every((field: any) => {
-        const value = answer?.[field.name || ''];
-        return value && value.trim() !== '';
+      const requiredFields = (currentQuestion.options as unknown[] || [])?.filter((opt) => (opt as Record<string, unknown>).required) || [];
+      return requiredFields.every((field) => {
+        const typedField = field as Record<string, unknown>;
+        const fieldName = typedField.name as string || '';
+        const value = answer?.[fieldName];
+        return value && String(value).trim() !== '';
       });
     }
 
@@ -69,7 +71,7 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
       return Array.isArray(answer) && answer.length >= minSelections;
     }
 
-    return answer !== undefined && answer !== null && answer !== '';
+    return typeof answer === 'string' && answer !== undefined && answer !== null && answer !== '';
   };
 
   const handleSubmit = async () => {
@@ -85,7 +87,7 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
     }
   };
 
-  const updateResponse = (questionId: string, value: any) => {
+  const updateResponse = (questionId: string, value: unknown) => {
     setResponses((prev) => ({
       ...prev,
       [questionId]: value,
@@ -97,59 +99,67 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
       case 'contact_info':
         return (
           <div className="space-y-4">
-            {currentQuestion.options?.map((field: any) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>
-                  {field.label}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
+            {(currentQuestion.options as unknown[] | undefined)?.map((field) => {
+              const typedField = field as Record<string, unknown>;
+              const fieldName = typedField.name as string;
+              return (
+              <div key={fieldName} className="space-y-2">
+                <Label htmlFor={fieldName}>
+                  {typedField.label ? String(typedField.label) : 'Field'}
+                  {Boolean(typedField.required) && <span className="text-destructive ml-1">*</span>}
                 </Label>
                 <Input
-                  id={field.name}
-                  name={field.name}
-                  type={field.name === 'email' ? 'email' : field.name === 'phone' ? 'tel' : 'text'}
-                  placeholder={field.label}
-                  value={responses[currentQuestion.id]?.[field.name || ''] || ''}
+                  id={fieldName}
+                  name={fieldName}
+                  type={fieldName === 'email' ? 'email' : fieldName === 'phone' ? 'tel' : 'text'}
+                  placeholder={String(typedField.label)}
+                  value={(responses[currentQuestion.id] as Record<string, unknown> | undefined)?.[fieldName] as string || ''}
                   onChange={(e) => {
-                    const contactInfo = responses[currentQuestion.id] || {};
+                    const contactInfo = (responses[currentQuestion.id] as Record<string, unknown>) || {};
                     updateResponse(currentQuestion.id, {
                       ...contactInfo,
-                      [field.name || '']: e.target.value,
+                      [fieldName]: e.target.value,
                     });
                   }}
-                  required={field.required}
+                  required={typedField.required as boolean}
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         );
 
       case 'multiple_choice':
         return (
           <div className="space-y-3">
-            {currentQuestion.options?.map((option: any) => (
+            {(currentQuestion.options as unknown[] | undefined)?.map((option) => {
+              const typedOption = option as Record<string, unknown>;
+              const optionValue = typedOption.value as string;
+              return (
               <button
-                key={option.value}
+                key={optionValue}
                 type="button"
-                onClick={() => updateResponse(currentQuestion.id, option.value)}
+                onClick={() => updateResponse(currentQuestion.id, optionValue)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition-all hover:border-opacity-60 ${
-                  responses[currentQuestion.id] === option.value
+                  responses[currentQuestion.id] === optionValue
                     ? 'border-current bg-current bg-opacity-5'
                     : 'border-border hover:bg-muted'
                 }`}
                 style={
-                  responses[currentQuestion.id] === option.value
+                  responses[currentQuestion.id] === optionValue
                     ? { borderColor: primaryColor, color: primaryColor }
                     : {}
                 }
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{option.label}</span>
-                  {responses[currentQuestion.id] === option.value && (
+                  <span className="font-medium">{String(typedOption.label)}</span>
+                  {responses[currentQuestion.id] === optionValue && (
                     <Check className="w-5 h-5" style={{ color: primaryColor }} />
                   )}
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         );
 
@@ -159,20 +169,22 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
             {currentQuestion.questionSubtext && (
               <p className="text-sm text-muted-foreground mb-4">{currentQuestion.questionSubtext}</p>
             )}
-            {currentQuestion.options?.map((option: any) => {
+            {(currentQuestion.options as unknown[] | undefined)?.map((option) => {
+              const typedOption = option as Record<string, unknown>;
+              const optionValue = typedOption.value as string;
               const selected = Array.isArray(responses[currentQuestion.id])
-                ? responses[currentQuestion.id].includes(option.value)
+                ? (responses[currentQuestion.id] as unknown[]).includes(optionValue)
                 : false;
 
               return (
                 <button
-                  key={option.value}
+                  key={optionValue}
                   type="button"
                   onClick={() => {
-                    const current = responses[currentQuestion.id] || [];
+                    const current = (responses[currentQuestion.id] as unknown[]) || [];
                     const newValue = selected
-                      ? current.filter((v: string) => v !== option.value)
-                      : [...current, option.value];
+                      ? current.filter((v: unknown) => v !== optionValue)
+                      : [...current, optionValue];
                     updateResponse(currentQuestion.id, newValue);
                   }}
                   className={`w-full text-left p-4 rounded-lg border-2 transition-all hover:border-opacity-60 ${
@@ -183,7 +195,7 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
                   style={selected ? { borderColor: primaryColor, color: primaryColor } : {}}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{option.label}</span>
+                    <span className="font-medium">{String(typedOption.label)}</span>
                     {selected && <Check className="w-5 h-5" style={{ color: primaryColor }} />}
                   </div>
                 </button>
@@ -201,7 +213,7 @@ export function QuizForm({ questions, tenantSlug, primaryColor, onComplete }: Qu
             <Input
               type="text"
               placeholder={currentQuestion.placeholder || 'Type your answer...'}
-              value={responses[currentQuestion.id] || ''}
+              value={(responses[currentQuestion.id] as string) || ''}
               onChange={(e) => updateResponse(currentQuestion.id, e.target.value)}
               className="text-base"
             />

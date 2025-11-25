@@ -46,8 +46,8 @@ export async function updateEmailSettings(formData: FormData) {
 
     revalidatePath('/admin/email');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating email settings:', error);
-    return { error: error.message || 'Failed to update email settings' };
+    return { error: error instanceof Error ? error.message : 'Failed to update email settings' };
   }
 }

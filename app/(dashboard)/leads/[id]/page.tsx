@@ -2,7 +2,7 @@ import { getOrgDb } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, Building2, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Building2, Calendar } from 'lucide-react';
 import { ApproveRejectButtons } from './approve-reject-buttons';
 
 export default async function LeadDetailPage({

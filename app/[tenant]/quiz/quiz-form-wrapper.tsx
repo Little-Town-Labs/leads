@@ -13,7 +13,7 @@ type QuizFormWrapperProps = {
 export function QuizFormWrapper({ questions, tenantSlug, primaryColor }: QuizFormWrapperProps) {
   const router = useRouter();
 
-  const handleComplete = async (responses: Record<string, any>) => {
+  const handleComplete = async (responses: Record<string, unknown>) => {
     // Submit quiz responses to the API
     const response = await fetch(`/api/quiz/submit`, {
       method: 'POST',

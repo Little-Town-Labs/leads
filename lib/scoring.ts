@@ -6,7 +6,7 @@
 export interface QuizResponseData {
   questionId: string;
   questionNumber: number;
-  answer: any;
+  answer: unknown;
   pointsEarned: number;
 }
 

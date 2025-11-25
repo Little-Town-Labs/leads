@@ -8,7 +8,7 @@ import type { QuizQuestion } from '@/db/schema';
 interface QuizResponse {
   questionId: string;
   questionNumber: number;
-  answer: any;
+  answer: unknown;
   pointsEarned: number;
 }
 
@@ -17,7 +17,7 @@ export default function QuizPage() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Map<number, QuizResponse>>(new Map());
-  const [currentAnswer, setCurrentAnswer] = useState<any>(null);
+  const [currentAnswer, setCurrentAnswer] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function QuizPage() {
         } else {
           setError('Failed to load quiz questions');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load quiz. Please refresh the page.');
       } finally {
         setLoading(false);
@@ -75,20 +75,20 @@ export default function QuizPage() {
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   // Calculate points for current answer
-  const calculatePoints = (answer: any): number => {
+  const calculatePoints = (answer: unknown): number => {
     if (!currentQuestion || !answer) return 0;
 
-    const options = currentQuestion.options as any[];
+    const options = currentQuestion.options as unknown[];
     const scoringWeight = currentQuestion.scoringWeight || 1;
 
     if (currentQuestion.questionType === 'multiple_choice') {
-      const selectedOption = options?.find((opt) => opt.value === answer);
-      return (selectedOption?.score || 0) * scoringWeight;
+      const selectedOption = (options as Record<string, unknown>[])?.find((opt) => opt.value === answer);
+      return (selectedOption?.score as number || 0) * scoringWeight;
     } else if (currentQuestion.questionType === 'checkbox') {
       if (!Array.isArray(answer)) return 0;
       const totalScore = answer.reduce((sum, value) => {
-        const option = options?.find((opt) => opt.value === value);
-        return sum + (option?.score || 0);
+        const option = (options as Record<string, unknown>[])?.find((opt) => opt.value === value);
+        return sum + (option?.score as number || 0);
       }, 0);
       return totalScore * scoringWeight;
     } else if (currentQuestion.questionType === 'contact_info') {
@@ -156,7 +156,7 @@ export default function QuizPage() {
         setError('Failed to submit assessment. Please try again.');
         setSubmitting(false);
       }
-    } catch (err) {
+    } catch {
       setError('Failed to submit assessment. Please try again.');
       setSubmitting(false);
     }
@@ -166,10 +166,12 @@ export default function QuizPage() {
     if (!currentAnswer) return false;
 
     if (currentQuestion.questionType === 'contact_info') {
-      const fields = currentQuestion.options as any[];
-      return fields.every((field: any) => {
-        if (!field.required) return true;
-        return currentAnswer[field.name] && currentAnswer[field.name].trim() !== '';
+      const fields = currentQuestion.options as unknown[];
+      return (fields as Record<string, unknown>[]).every((field) => {
+        if (!(field as Record<string, unknown>).required) return true;
+        const answer = currentAnswer as Record<string, unknown>;
+        const fieldName = (field as Record<string, unknown>).name as string;
+        return answer[fieldName] && String(answer[fieldName]).trim() !== '';
       });
     } else if (currentQuestion.questionType === 'checkbox') {
       const minSelections = currentQuestion.minSelections || 0;
@@ -262,32 +264,32 @@ export default function QuizPage() {
               {currentQuestion.questionType === 'contact_info' && (
                 <ContactInfoQuestion
                   question={currentQuestion}
-                  value={currentAnswer || {}}
-                  onChange={setCurrentAnswer}
+                  value={(currentAnswer as Record<string, string>) || {}}
+                  onChange={(val) => setCurrentAnswer(val)}
                 />
               )}
 
               {currentQuestion.questionType === 'multiple_choice' && (
                 <MultipleChoiceQuestion
                   question={currentQuestion}
-                  value={currentAnswer}
-                  onChange={setCurrentAnswer}
+                  value={(currentAnswer as string) || ''}
+                  onChange={(val) => setCurrentAnswer(val)}
                 />
               )}
 
               {currentQuestion.questionType === 'checkbox' && (
                 <CheckboxQuestion
                   question={currentQuestion}
-                  value={currentAnswer || []}
-                  onChange={setCurrentAnswer}
+                  value={(currentAnswer as string[]) || []}
+                  onChange={(val) => setCurrentAnswer(val)}
                 />
               )}
 
               {currentQuestion.questionType === 'text' && (
                 <TextQuestion
                   question={currentQuestion}
-                  value={currentAnswer || ''}
-                  onChange={setCurrentAnswer}
+                  value={(currentAnswer as string) || ''}
+                  onChange={(val) => setCurrentAnswer(val)}
                 />
               )}
             </div>
@@ -361,7 +363,7 @@ function ContactInfoQuestion({
   value: Record<string, string>;
   onChange: (value: Record<string, string>) => void;
 }) {
-  const fields = question.options as any[];
+  const fields = question.options as unknown[];
 
   const handleFieldChange = (fieldName: string, fieldValue: string) => {
     onChange({ ...value, [fieldName]: fieldValue });
@@ -369,21 +371,25 @@ function ContactInfoQuestion({
 
   return (
     <div className="space-y-4">
-      {fields.map((field: any) => (
-        <div key={field.name}>
+      {(fields as Record<string, unknown>[]).map((field) => {
+        const typedField = field as Record<string, unknown>;
+        const fieldName = typedField.name as string;
+        return (
+        <div key={fieldName}>
           <label className="block text-sm font-medium text-foreground mb-2">
-            {field.label}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {typedField.label ? String(typedField.label) : 'Field'}
+            {Boolean(typedField.required) && <span className="text-destructive ml-1">*</span>}
           </label>
           <input
-            type={field.name === 'email' ? 'email' : field.name === 'phone' ? 'tel' : 'text'}
-            value={value[field.name] || ''}
-            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+            type={fieldName === 'email' ? 'email' : fieldName === 'phone' ? 'tel' : 'text'}
+            value={value[fieldName] || ''}
+            onChange={(e) => handleFieldChange(fieldName, e.target.value)}
             className="w-full px-4 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            required={field.required}
+            required={typedField.required as boolean}
           />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -397,15 +403,18 @@ function MultipleChoiceQuestion({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const options = question.options as any[];
+  const options = question.options as unknown[];
 
   return (
     <div className="space-y-3">
-      {options.map((option: any) => (
+      {(options as Record<string, unknown>[]).map((option) => {
+        const typedOption = option as Record<string, unknown>;
+        const optionValue = typedOption.value as string;
+        return (
         <label
-          key={option.value}
+          key={optionValue}
           className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-            value === option.value
+            value === optionValue
               ? 'border-primary bg-accent/10'
               : 'border-border hover:border-accent'
           }`}
@@ -413,14 +422,15 @@ function MultipleChoiceQuestion({
           <input
             type="radio"
             name={`question-${question.id}`}
-            value={option.value}
-            checked={value === option.value}
+            value={optionValue}
+            checked={value === optionValue}
             onChange={(e) => onChange(e.target.value)}
             className="mt-1 w-4 h-4 text-primary focus:ring-primary"
           />
-          <span className="flex-1 text-foreground">{option.label}</span>
+          <span className="flex-1 text-foreground">{String(typedOption.label)}</span>
         </label>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -434,7 +444,7 @@ function CheckboxQuestion({
   value: string[];
   onChange: (value: string[]) => void;
 }) {
-  const options = question.options as any[];
+  const options = question.options as unknown[];
 
   const handleToggle = (optionValue: string) => {
     if (value.includes(optionValue)) {
@@ -446,25 +456,29 @@ function CheckboxQuestion({
 
   return (
     <div className="space-y-3">
-      {options.map((option: any) => (
+      {(options as Record<string, unknown>[]).map((option) => {
+        const typedOption = option as Record<string, unknown>;
+        const optionValue = typedOption.value as string;
+        return (
         <label
-          key={option.value}
+          key={optionValue}
           className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-            value.includes(option.value)
+            value.includes(optionValue)
               ? 'border-primary bg-accent/10'
               : 'border-border hover:border-accent'
           }`}
         >
           <input
             type="checkbox"
-            value={option.value}
-            checked={value.includes(option.value)}
-            onChange={() => handleToggle(option.value)}
+            value={optionValue}
+            checked={value.includes(optionValue)}
+            onChange={() => handleToggle(optionValue)}
             className="mt-1 w-4 h-4 text-primary rounded focus:ring-primary"
           />
-          <span className="flex-1 text-foreground">{option.label}</span>
+          <span className="flex-1 text-foreground">{String(typedOption.label)}</span>
         </label>
-      ))}
+        );
+      })}
     </div>
   );
 }

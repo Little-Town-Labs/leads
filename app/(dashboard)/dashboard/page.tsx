@@ -19,7 +19,6 @@ export default async function DashboardPage() {
   const recentLeads = leads.slice(0, 10);
 
   // Calculate stats
-  const totalLeads = counts.total;
   const pendingLeads = counts.pending;
   const approvedLeads = counts.approved;
   const rejectedLeads = counts.rejected;

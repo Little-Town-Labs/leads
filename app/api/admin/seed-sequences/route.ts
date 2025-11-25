@@ -246,7 +246,7 @@ P.S. - Quick question: What would need to change for help desk optimization to b
 export async function POST() {
   try {
     // Insert sequences (on conflict do nothing)
-    const results = await db.insert(emailSequences).values(EMAIL_SEQUENCES).onConflictDoNothing();
+    await db.insert(emailSequences).values(EMAIL_SEQUENCES).onConflictDoNothing();
 
     return NextResponse.json({
       success: true,

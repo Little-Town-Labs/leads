@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, Loader2, TrendingUp, Target, Calendar, Mail } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,7 +30,6 @@ interface AssessmentResult {
 
 export default function ResultsPage() {
   const params = useParams();
-  const router = useRouter();
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +47,7 @@ export default function ResultsPage() {
         } else {
           setError(data.error || 'Failed to load results');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load assessment results');
       } finally {
         setLoading(false);
@@ -298,7 +297,7 @@ function ScoreBar({
   );
 }
 
-function getTierConfig(tier: string, score: number) {
+function getTierConfig(tier: string, _score: number) {
   switch (tier) {
     case 'qualified':
       return {

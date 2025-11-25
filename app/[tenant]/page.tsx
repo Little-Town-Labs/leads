@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTenantBySubdomain } from '@/lib/tenants';
 import { ArrowRight, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 /**
  * Tenant Landing Page

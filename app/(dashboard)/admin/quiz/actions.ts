@@ -39,9 +39,9 @@ export async function createQuizQuestion(formData: FormData) {
 
     revalidatePath('/admin/quiz');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating quiz question:', error);
-    return { error: error.message || 'Failed to create quiz question' };
+    return { error: error instanceof Error ? error.message : 'Failed to create quiz question' };
   }
 }
 
@@ -81,9 +81,9 @@ export async function updateQuizQuestion(id: string, formData: FormData) {
 
     revalidatePath('/admin/quiz');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating quiz question:', error);
-    return { error: error.message || 'Failed to update quiz question' };
+    return { error: error instanceof Error ? error.message : 'Failed to update quiz question' };
   }
 }
 
@@ -101,8 +101,8 @@ export async function deleteQuizQuestion(id: string) {
 
     revalidatePath('/admin/quiz');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting quiz question:', error);
-    return { error: error.message || 'Failed to delete quiz question' };
+    return { error: error instanceof Error ? error.message : 'Failed to delete quiz question' };
   }
 }

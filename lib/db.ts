@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { leads, workflows, type Lead, type NewLead, type Workflow, type NewWorkflow } from '@/db/schema';
+import { leads, workflows, type NewLead, type NewWorkflow } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 /**

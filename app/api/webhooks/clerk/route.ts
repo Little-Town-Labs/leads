@@ -129,63 +129,73 @@ export async function POST(req: Request) {
  * TODO: Implement these based on your database schema
  */
 
-async function handleUserCreated(data: any) {
+async function handleUserCreated(data: unknown) {
+  const userData = data as Record<string, unknown>;
+  const emailAddresses = userData.email_addresses as Array<Record<string, unknown>> | undefined;
+
   console.log('User created:', {
-    id: data.id,
-    email: data.email_addresses?.[0]?.email_address,
-    firstName: data.first_name,
-    lastName: data.last_name,
+    id: userData.id,
+    email: emailAddresses?.[0]?.email_address,
+    firstName: userData.first_name,
+    lastName: userData.last_name,
   });
 
   await db.insert(users).values({
-    clerkUserId: data.id,
-    email: data.email_addresses?.[0]?.email_address || '',
-    firstName: data.first_name,
-    lastName: data.last_name,
-    imageUrl: data.image_url,
+    clerkUserId: userData.id as string,
+    email: (emailAddresses?.[0]?.email_address as string) || '',
+    firstName: userData.first_name as string | null | undefined,
+    lastName: userData.last_name as string | null | undefined,
+    imageUrl: userData.image_url as string | null | undefined,
   });
 }
 
-async function handleUserUpdated(data: any) {
-  console.log('User updated:', data.id);
+async function handleUserUpdated(data: unknown) {
+  const userData = data as Record<string, unknown>;
+  const emailAddresses = userData.email_addresses as Array<Record<string, unknown>> | undefined;
+
+  console.log('User updated:', userData.id);
 
   await db.update(users)
     .set({
-      email: data.email_addresses?.[0]?.email_address || '',
-      firstName: data.first_name,
-      lastName: data.last_name,
-      imageUrl: data.image_url,
+      email: (emailAddresses?.[0]?.email_address as string) || '',
+      firstName: userData.first_name as string | null | undefined,
+      lastName: userData.last_name as string | null | undefined,
+      imageUrl: userData.image_url as string | null | undefined,
       updatedAt: new Date(),
     })
-    .where(eq(users.clerkUserId, data.id));
+    .where(eq(users.clerkUserId, userData.id as string));
 }
 
-async function handleUserDeleted(data: any) {
-  console.log('User deleted:', data.id);
+async function handleUserDeleted(data: unknown) {
+  const userData = data as Record<string, unknown>;
+
+  console.log('User deleted:', userData.id);
 
   // Delete user record and cascade to organization memberships
-  await db.delete(users).where(eq(users.clerkUserId, data.id));
-  await db.delete(organizationMembers).where(eq(organizationMembers.clerkUserId, data.id));
+  await db.delete(users).where(eq(users.clerkUserId, userData.id as string));
+  await db.delete(organizationMembers).where(eq(organizationMembers.clerkUserId, userData.id as string));
 }
 
-async function handleOrganizationCreated(data: any) {
+async function handleOrganizationCreated(data: unknown) {
+  const orgData = data as Record<string, unknown>;
+
   console.log('Organization created:', {
-    id: data.id,
-    name: data.name,
-    slug: data.slug,
+    id: orgData.id,
+    name: orgData.name,
+    slug: orgData.slug,
   });
 
   await db.insert(tenants).values({
-    clerkOrgId: data.id,
-    name: data.name,
-    slug: data.slug,
-    subdomain: data.slug, // Use org slug as subdomain
+    clerkOrgId: orgData.id as string,
+    name: orgData.name as string,
+    slug: orgData.slug as string,
+    subdomain: orgData.slug as string, // Use org slug as subdomain
     branding: {
       primaryColor: '#3B82F6',
       secondaryColor: '#10B981',
     },
     landingPage: {
-      heroTitle: `Welcome to ${data.name}`,
+      heroTitle: `Welcome to ${orgData.name as string}`,
       heroSubtitle: 'Complete our assessment to get started',
       ctaText: 'Take Assessment',
     },
@@ -201,51 +211,63 @@ async function handleOrganizationCreated(data: any) {
   });
 }
 
-async function handleOrganizationUpdated(data: any) {
-  console.log('Organization updated:', data.id);
+async function handleOrganizationUpdated(data: unknown) {
+  const orgData = data as Record<string, unknown>;
+
+  console.log('Organization updated:', orgData.id);
 
   await db.update(tenants)
     .set({
-      name: data.name,
-      slug: data.slug,
-      subdomain: data.slug,
+      name: orgData.name as string,
+      slug: orgData.slug as string,
+      subdomain: orgData.slug as string,
       updatedAt: new Date(),
     })
-    .where(eq(tenants.clerkOrgId, data.id));
+    .where(eq(tenants.clerkOrgId, orgData.id as string));
 }
 
-async function handleOrganizationDeleted(data: any) {
-  console.log('Organization deleted:', data.id);
+async function handleOrganizationDeleted(data: unknown) {
+  const orgData = data as Record<string, unknown>;
+
+  console.log('Organization deleted:', orgData.id);
 
   // Delete tenant - this will cascade to delete org-specific data
-  await db.delete(tenants).where(eq(tenants.clerkOrgId, data.id));
+  await db.delete(tenants).where(eq(tenants.clerkOrgId, orgData.id as string));
   // Also clean up organization memberships
-  await db.delete(organizationMembers).where(eq(organizationMembers.clerkOrgId, data.id));
+  await db.delete(organizationMembers).where(eq(organizationMembers.clerkOrgId, orgData.id as string));
 }
 
-async function handleMembershipCreated(data: any) {
+async function handleMembershipCreated(data: unknown) {
+  const memberData = data as Record<string, unknown>;
+  const organization = memberData.organization as Record<string, unknown> | undefined;
+  const publicUserData = memberData.public_user_data as Record<string, unknown> | undefined;
+
   console.log('Membership created:', {
-    orgId: data.organization.id,
-    userId: data.public_user_data.user_id,
-    role: data.role,
+    orgId: organization?.id,
+    userId: publicUserData?.user_id,
+    role: memberData.role,
   });
 
   await db.insert(organizationMembers).values({
-    clerkOrgId: data.organization.id,
-    clerkUserId: data.public_user_data.user_id,
-    role: data.role,
+    clerkOrgId: organization?.id as string,
+    clerkUserId: publicUserData?.user_id as string,
+    role: memberData.role as string,
   });
 }
 
-async function handleMembershipDeleted(data: any) {
+async function handleMembershipDeleted(data: unknown) {
+  const memberData = data as Record<string, unknown>;
+  const organization = memberData.organization as Record<string, unknown> | undefined;
+  const publicUserData = memberData.public_user_data as Record<string, unknown> | undefined;
+
   console.log('Membership deleted:', {
-    orgId: data.organization.id,
-    userId: data.public_user_data.user_id,
+    orgId: organization?.id,
+    userId: publicUserData?.user_id,
   });
 
   await db.delete(organizationMembers)
     .where(and(
-      eq(organizationMembers.clerkOrgId, data.organization.id),
-      eq(organizationMembers.clerkUserId, data.public_user_data.user_id)
+      eq(organizationMembers.clerkOrgId, organization?.id as string),
+      eq(organizationMembers.clerkUserId, publicUserData?.user_id as string)
     ));
 }

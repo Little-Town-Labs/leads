@@ -1,6 +1,5 @@
 import { getOrgDb } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
-import Link from 'next/link';
 import { Download, Search } from 'lucide-react';
 import { LeadsTable } from './leads-table';
 

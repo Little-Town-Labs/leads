@@ -8,7 +8,7 @@ export type QuizQuestion = {
   questionType: 'contact_info' | 'multiple_choice' | 'checkbox' | 'text';
   questionText: string;
   questionSubtext?: string | null;
-  options?: any;
+  options?: unknown;
   scoringWeight: number;
   isRequired: boolean;
   placeholder?: string | null;

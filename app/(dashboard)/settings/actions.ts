@@ -32,9 +32,9 @@ export async function inviteMember(formData: FormData) {
 
     revalidatePath('/settings');
     return { success: true, invitation };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error inviting member:', error);
-    return { error: error.message || 'Failed to invite member' };
+    return { error: error instanceof Error ? error.message : 'Failed to invite member' };
   }
 }
 
@@ -59,9 +59,9 @@ export async function updateMemberRole(membershipId: string, newRole: string) {
 
     revalidatePath('/settings');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating member role:', error);
-    return { error: error.message || 'Failed to update member role' };
+    return { error: error instanceof Error ? error.message : 'Failed to update member role' };
   }
 }
 
@@ -90,8 +90,8 @@ export async function removeMember(userId: string) {
 
     revalidatePath('/settings');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error removing member:', error);
-    return { error: error.message || 'Failed to remove member' };
+    return { error: error instanceof Error ? error.message : 'Failed to remove member' };
   }
 }

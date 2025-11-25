@@ -76,14 +76,17 @@ export function QuizQuestionList({ questions }: QuizQuestionListProps) {
                       )}
                       {question.options && Array.isArray(question.options) ? (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {question.options.slice(0, 3).map((opt: any, idx: number) => (
+                          {question.options.slice(0, 3).map((opt: unknown, idx: number) => {
+                            const option = opt as Record<string, unknown>;
+                            return (
                             <span
                               key={idx}
                               className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200"
                             >
-                              {opt.label || opt.value}
+                              {String(option.label || option.value)}
                             </span>
-                          ))}
+                          );
+                          })}
                           {question.options.length > 3 && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600">
                               +{question.options.length - 3} more

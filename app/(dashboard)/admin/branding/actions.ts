@@ -36,9 +36,9 @@ export async function updateBranding(formData: FormData) {
 
     revalidatePath('/admin/branding');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating branding:', error);
-    return { error: error.message || 'Failed to update branding' };
+    return { error: error instanceof Error ? error.message : 'Failed to update branding' };
   }
 }
 
@@ -68,8 +68,8 @@ export async function updateLandingPage(formData: FormData) {
 
     revalidatePath('/admin/branding');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating landing page:', error);
-    return { error: error.message || 'Failed to update landing page' };
+    return { error: error instanceof Error ? error.message : 'Failed to update landing page' };
   }
 }

@@ -68,11 +68,11 @@ export function KnowledgeBaseList({ documents }: KnowledgeBaseListProps) {
                       <span>
                         Added {new Date(doc.createdAt).toLocaleDateString()}
                       </span>
-                      {doc.metadata && (doc.metadata as any).category && (
+                      {doc.metadata && typeof doc.metadata === 'object' && 'category' in doc.metadata && (
                         <>
                           <span>•</span>
                           <span>
-                            {(doc.metadata as any).category}
+                            {String((doc.metadata as Record<string, unknown>).category)}
                           </span>
                         </>
                       )}

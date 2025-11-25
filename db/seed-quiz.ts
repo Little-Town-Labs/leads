@@ -357,10 +357,10 @@ async function seedQuiz() {
     // Calculate max possible score
     const maxScore = HELP_DESK_QUIZ_QUESTIONS.reduce((total, q) => {
       if (q.questionType === 'multiple_choice' && q.options) {
-        const maxOptionScore = Math.max(...q.options.map((opt: any) => opt.score || 0));
+        const maxOptionScore = Math.max(...q.options.map((opt: Record<string, unknown>) => (opt.score as number) || 0));
         return total + maxOptionScore * q.scoringWeight;
       } else if (q.questionType === 'checkbox' && q.options) {
-        const totalCheckboxScore = q.options.reduce((sum: number, opt: any) => sum + (opt.score || 0), 0);
+        const totalCheckboxScore = q.options.reduce((sum: number, opt: Record<string, unknown>) => sum + ((opt.score as number) || 0), 0);
         return total + totalCheckboxScore * q.scoringWeight;
       }
       return total;
@@ -375,7 +375,8 @@ async function seedQuiz() {
 
     console.log('\n✨ Quiz seeding complete!');
   } catch (error) {
-    console.error('❌ Error seeding quiz:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('❌ Error seeding quiz:', errorMessage);
     throw error;
   }
 }

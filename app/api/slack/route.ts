@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 
 // Only set up event handlers if Slack is initialized
 if (slackApp && receiver) {
-  slackApp.event('app_mention', async ({ event, client, logger }) => {
+  slackApp.event('app_mention', async ({ event, client }) => {
     await client.chat.postMessage({
       channel: event.channel,
       thread_ts: event.ts,
@@ -21,9 +21,9 @@ if (slackApp && receiver) {
       await ack();
 
       // Get workflow ID from button value
-      const workflowId = (action as any).value;
+      const actionValue = 'value' in action ? (action as unknown as { value: string }).value : undefined;
 
-      if (!workflowId) {
+      if (!actionValue) {
         logger.error('No workflow ID provided in button action');
         return;
       }
@@ -33,11 +33,11 @@ if (slackApp && receiver) {
         status: 'completed',
         approvedBy: body.user.id,
         completedAt: new Date(),
-      }).where(eq(workflows.id, workflowId));
+      }).where(eq(workflows.id, actionValue));
 
       // Get workflow to find associated lead
       const workflow = await db.query.workflows.findFirst({
-        where: eq(workflows.id, workflowId),
+        where: eq(workflows.id, actionValue),
       });
 
       if (workflow?.leadId) {
@@ -45,11 +45,11 @@ if (slackApp && receiver) {
         await db.update(leads).set({
           status: 'approved',
           updatedAt: new Date(),
-        }).where(eq(leads.id, workflow.leadId));
+        }).where(eq(leads.id, workflow.leadId as string));
 
         // Get lead details to send email
         const lead = await db.query.leads.findFirst({
-          where: eq(leads.id, workflow.leadId),
+          where: eq(leads.id, workflow.leadId as string),
         });
 
         // Send email to the lead
@@ -63,8 +63,9 @@ if (slackApp && receiver) {
       }
 
       // Update Slack message
-      const channelId = (body as any).channel?.id;
-      const messageTs = (body as any).message?.ts;
+      const bodyRecord = body as unknown as { channel?: { id?: string }; message?: { ts?: string } };
+      const channelId = bodyRecord?.channel?.id;
+      const messageTs = bodyRecord?.message?.ts;
 
       if (channelId && messageTs) {
         await client.chat.update({
@@ -91,9 +92,9 @@ if (slackApp && receiver) {
       await ack();
 
       // Get workflow ID from button value
-      const workflowId = (action as any).value;
+      const actionValue = 'value' in action ? (action as unknown as { value: string }).value : undefined;
 
-      if (!workflowId) {
+      if (!actionValue) {
         logger.error('No workflow ID provided in button action');
         return;
       }
@@ -103,11 +104,11 @@ if (slackApp && receiver) {
         status: 'completed',
         rejectedBy: body.user.id,
         completedAt: new Date(),
-      }).where(eq(workflows.id, workflowId));
+      }).where(eq(workflows.id, actionValue));
 
       // Get workflow to find associated lead
       const workflow = await db.query.workflows.findFirst({
-        where: eq(workflows.id, workflowId),
+        where: eq(workflows.id, actionValue),
       });
 
       if (workflow?.leadId) {
@@ -115,12 +116,13 @@ if (slackApp && receiver) {
         await db.update(leads).set({
           status: 'rejected',
           updatedAt: new Date(),
-        }).where(eq(leads.id, workflow.leadId));
+        }).where(eq(leads.id, workflow.leadId as string));
       }
 
       // Update Slack message
-      const channelId = (body as any).channel?.id;
-      const messageTs = (body as any).message?.ts;
+      const bodyRecord = body as unknown as { channel?: { id?: string }; message?: { ts?: string } };
+      const channelId = bodyRecord?.channel?.id;
+      const messageTs = bodyRecord?.message?.ts;
 
       if (channelId && messageTs) {
         await client.chat.update({

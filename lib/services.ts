@@ -136,7 +136,7 @@ export const crmSearch = tool({
       .string()
       .describe('The name of the company to search for (e.g. "Vercel")')
   }),
-  execute: async ({ name }) => {
+  execute: async () => {
     // fetch from CRM like Salesforce, Hubspot, or Snowflake, etc.
     return [];
   }
@@ -147,7 +147,7 @@ export const crmSearch = tool({
  */
 
 // Import simple-wappalyzer
-let simpleWappalyzer: any = null;
+let simpleWappalyzer: unknown = null;
 
 async function getWappalyzer() {
   if (!simpleWappalyzer) {
@@ -184,7 +184,7 @@ export const techStackAnalysis = tool({
 
       // Get wappalyzer function and analyze
       const wappalyzer = await getWappalyzer();
-      const result = await wappalyzer({
+      const result = await (wappalyzer as (opts: { url: string; html: string; headers: Record<string, string>; statusCode: number }) => Promise<unknown>)({
         url,
         html,
         headers,
@@ -193,25 +193,28 @@ export const techStackAnalysis = tool({
 
       // Format results for AI agent consumption
       // Result is an array of technology objects
-      if (!result || result.length === 0) {
+      const resultArray = result as unknown[];
+      if (!resultArray || resultArray.length === 0) {
         return `No technologies detected for ${domain}. The site may use custom-built solutions or technologies not in the detection database.`;
       }
 
       // Extract and format technologies
-      const technologies = result.map((app: any) => {
+      const technologies = resultArray.map((app: unknown) => {
+        const appRecord = app as Record<string, unknown>;
+        const categories = appRecord.categories as Array<Record<string, unknown>> | undefined;
         // Get primary category name
-        const categoryName = app.categories?.[0]?.name || 'Unknown';
+        const categoryName = (categories?.[0]?.name as string) || 'Unknown';
 
         return {
-          name: app.name,
+          name: appRecord.name as string,
           category: categoryName,
-          version: app.version || 'N/A',
-          confidence: app.confidence || 100
+          version: (appRecord.version as string) || 'N/A',
+          confidence: (appRecord.confidence as number) || 100
         };
       });
 
       // Group by category for better readability
-      const grouped = technologies.reduce((acc: any, tech: any) => {
+      const grouped = technologies.reduce((acc: Record<string, Array<{ name: string; category: string; version: string; confidence: number }>>, tech: { name: string; category: string; version: string; confidence: number }) => {
         const category = tech.category;
         if (!acc[category]) {
           acc[category] = [];
@@ -225,7 +228,8 @@ export const techStackAnalysis = tool({
 
       for (const [category, techs] of Object.entries(grouped)) {
         report += `${category}:\n`;
-        (techs as any[]).forEach(tech => {
+        const techsList = techs as Array<{ name: string; category: string; version: string; confidence: number }>;
+        techsList.forEach((tech: { name: string; category: string; version: string; confidence: number }) => {
           const versionInfo = tech.version !== 'N/A' ? ` (v${tech.version})` : '';
           const confidenceInfo = tech.confidence !== 100 ? ` [${tech.confidence}% confidence]` : '';
           report += `  - ${tech.name}${versionInfo}${confidenceInfo}\n`;
@@ -237,18 +241,22 @@ export const techStackAnalysis = tool({
 
       return report;
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+      const errorCode = (error as Record<string, unknown>).code as string | undefined;
+
       console.error('Tech stack analysis error:', error);
 
-      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      if (errorName === 'AbortError' || errorName === 'TimeoutError') {
         return `Timeout while analyzing ${domain}. The website may be slow or unreachable.`;
       }
 
-      if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      if (errorCode === 'ENOTFOUND' || errorCode === 'ECONNREFUSED') {
         return `Cannot reach ${domain}. The domain may not exist or is not accessible.`;
       }
 
-      return `Error analyzing ${domain}: ${error.message}`;
+      return `Error analyzing ${domain}: ${errorMessage}`;
     }
   }
 });
