@@ -22,6 +22,8 @@ export default clerkMiddleware((auth, request: NextRequest) => {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/select-organization') ||
+    pathname.startsWith('/default-redirect') ||
     pathname.startsWith('/favicon.ico')
   ) {
     return NextResponse.next();
