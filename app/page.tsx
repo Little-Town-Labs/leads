@@ -37,7 +37,11 @@ export default function Home() {
 
             {/* Show Sign In button to non-authenticated users */}
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="redirect"
+                redirectUrl="/dashboard"
+                signInFallbackRedirectUrl="/dashboard"
+              >
                 <Button variant="outline" size="sm">Sign In</Button>
               </SignInButton>
             </SignedOut>
