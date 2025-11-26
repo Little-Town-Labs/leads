@@ -3,10 +3,14 @@
  * Populates quiz_questions table with Timeless Technology Solutions' help desk assessment
  */
 
+import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { quizQuestions } from './schema';
 import { eq } from 'drizzle-orm';
+
+// Load environment variables
+dotenv.config();
 
 // Use HTTP driver for Node.js scripts (WebSocket driver doesn't work in Node)
 const sql = neon(process.env.DATABASE_URL!);

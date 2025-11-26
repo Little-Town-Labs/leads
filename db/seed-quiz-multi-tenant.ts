@@ -7,10 +7,14 @@
  * Run with: pnpm tsx db/seed-quiz-multi-tenant.ts
  */
 
+import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { quizQuestions, tenants, type NewQuizQuestion } from './schema';
 import { eq, and } from 'drizzle-orm';
+
+// Load environment variables
+dotenv.config();
 
 // Use HTTP driver for Node.js scripts
 const sql = neon(process.env.DATABASE_URL!);

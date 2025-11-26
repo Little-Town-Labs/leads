@@ -8,10 +8,14 @@
  * Run with: pnpm tsx db/seed-tenants.ts
  */
 
+import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
 import { tenants, type NewTenant } from './schema';
 import { eq } from 'drizzle-orm';
+
+// Load environment variables
+dotenv.config();
 
 // Use HTTP driver for Node.js scripts (WebSocket driver doesn't work in Node)
 const sql = neon(process.env.DATABASE_URL!);
