@@ -351,6 +351,27 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Demo CTA Section */}
+        <section className="container mx-auto px-4 py-16">
+          <div className="max-w-4xl mx-auto text-center bg-gradient-to-r from-primary to-chart-1 rounded-2xl p-12 shadow-xl">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+              Not Sure If Lead Agent Is Right for You?
+            </h2>
+            <p className="text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
+              Take our 5-minute product fit assessment. See exactly how Lead Agent works and get a personalized recommendation for your business.
+            </p>
+            <Link href="/assessment">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-6 shadow-lg">
+                Try Demo Assessment
+                <Target className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+            <p className="text-sm text-primary-foreground/80 mt-6">
+              ✓ No credit card required  •  ✓ Takes 5 minutes  •  ✓ Instant personalized results
+            </p>
+          </div>
+        </section>
+
         {/* Pricing Section */}
         <section id="pricing" className="container mx-auto px-4 py-16 bg-muted/30">
           <div className="max-w-5xl mx-auto">

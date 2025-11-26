@@ -1,104 +1,48 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { CheckCircle, ArrowRight, Loader2, TrendingUp, Target, Calendar, Mail } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { db } from '@/db';
+import { leads, leadScores } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Calendar, Mail, TrendingUp, Target } from 'lucide-react';
 
-interface AssessmentResult {
-  lead: {
-    id: string;
-    name: string;
-    email: string;
-    company: string | null;
-  };
-  score: {
-    readinessScore: number;
-    tier: 'cold' | 'warm' | 'hot' | 'qualified';
-    tierDescription: string;
-    totalPoints: number;
-    maxPossiblePoints: number;
-    breakdown: {
-      contactInfo: number;
-      currentState: number;
-      goals: number;
-      readiness: number;
-    };
-  };
-  responsesCount: number;
-}
+export default async function DemoResultsPage({
+  params,
+}: {
+  params: Promise<{ leadId: string }>;
+}) {
+  const { leadId } = await params;
 
-export default function ResultsPage() {
-  const params = useParams();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Fetch lead and score
+  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
 
-  const leadId = params.leadId as string;
+  if (!lead || lead.orgId !== 'org_demo_leadagent') {
+    notFound();
+  }
 
-  useEffect(() => {
-    async function fetchResults() {
-      try {
-        const res = await fetch(`/api/assessment/results/${leadId}`);
-        const data = await res.json();
+  const [score] = await db.select().from(leadScores).where(eq(leadScores.leadId, leadId)).limit(1);
 
-        if (data.success) {
-          setResult(data);
-        } else {
-          setError(data.error || 'Failed to load results');
-        }
-      } catch {
-        setError('Failed to load assessment results');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (leadId) {
-      fetchResults();
-    }
-  }, [leadId]);
-
-  if (loading) {
+  if (!score) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p>Processing your results...</p>
       </div>
     );
   }
 
-  if (error || !result) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Error</h1>
-          <p className="text-muted-foreground mb-6">{error || 'Results not found'}</p>
-          <Link
-            href="/assessment"
-            className="inline-flex items-center gap-2 text-primary hover:underline"
-          >
-            Return to Assessment
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const { lead, score } = result;
-  const tierConfig = getTierConfig(score.tier, score.readinessScore);
+  const fitScore = score.readinessScore;
+  const tierConfig = getFitTierConfig(fitScore);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Header */}
       <header className="border-b border-border bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="text-xl font-bold text-primary">
-            Timeless Technology Solutions
-          </div>
+          <Link href="/" className="text-xl font-bold">Lead Agent</Link>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 md:py-16">
+      <main className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           {/* Success Header */}
           <div className="text-center mb-8">
@@ -109,7 +53,7 @@ export default function ResultsPage() {
               Assessment Complete!
             </h1>
             <p className="text-lg text-muted-foreground">
-              Thank you, {lead.name}. Here are your results.
+              Thank you, {lead.name}. Here's your Product Fit analysis.
             </p>
           </div>
 
@@ -137,15 +81,15 @@ export default function ResultsPage() {
                       strokeWidth="12"
                       fill="transparent"
                       strokeDasharray={`${2 * Math.PI * 70}`}
-                      strokeDashoffset={`${2 * Math.PI * 70 * (1 - score.readinessScore / 100)}`}
+                      strokeDashoffset={`${2 * Math.PI * 70 * (1 - fitScore / 100)}`}
                       className={tierConfig.scoreColor}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-foreground">{score.readinessScore}%</div>
-                      <div className="text-sm text-muted-foreground">Ready</div>
+                      <div className="text-4xl font-bold text-foreground">{fitScore}%</div>
+                      <div className="text-sm text-muted-foreground">Fit Score</div>
                     </div>
                   </div>
                 </div>
@@ -163,62 +107,45 @@ export default function ResultsPage() {
                   {tierConfig.description}
                 </p>
                 <div className="text-sm text-muted-foreground">
-                  Based on {result.responsesCount} questions • Score: {score.totalPoints} / {score.maxPossiblePoints} points
+                  Based on your responses • Score: {score.totalPoints} / {score.maxPossiblePoints} points
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Score Breakdown */}
-          <div className="bg-card border border-border rounded-lg shadow-sm p-6 mb-8">
-            <h3 className="text-xl font-bold text-foreground mb-4">Score Breakdown</h3>
-            <div className="space-y-4">
-              <ScoreBar
-                label="Company & Industry"
-                value={score.breakdown.contactInfo}
-                maxValue={60}
-                color="chart-1"
-              />
-              <ScoreBar
-                label="Current Help Desk State"
-                value={score.breakdown.currentState}
-                maxValue={200}
-                color="chart-2"
-              />
-              <ScoreBar
-                label="Goals & Strategic Fit"
-                value={score.breakdown.goals}
-                maxValue={150}
-                color="chart-3"
-              />
-              <ScoreBar
-                label="Readiness Indicators"
-                value={score.breakdown.readiness}
-                maxValue={289}
-                color="chart-4"
-              />
-            </div>
-          </div>
-
-          {/* What Happens Next */}
+          {/* ROI Calculation */}
           <div className="bg-card border border-border rounded-lg shadow-sm p-6 mb-8">
             <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
-              What Happens Next
+              Your Potential ROI
             </h3>
-            <div className="space-y-4">
-              {tierConfig.nextSteps.map((step, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-1">{step.title}</h4>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-chart-4/10 border border-chart-4/20 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Time Saved</p>
+                <p className="text-2xl font-bold text-chart-4">60 hrs/mo</p>
+              </div>
+              <div className="bg-chart-1/10 border border-chart-1/20 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Monthly Cost</p>
+                <p className="text-2xl font-bold text-chart-1">$599</p>
+              </div>
+              <div className="bg-chart-3/10 border border-chart-3/20 rounded-lg p-4">
+                <p className="text-sm text-muted-foreground mb-1">Break-Even</p>
+                <p className="text-2xl font-bold text-chart-3">1 lead/mo</p>
+              </div>
             </div>
+          </div>
+
+          {/* Preview Section */}
+          <div className="bg-card border border-border rounded-lg shadow-sm p-6 mb-8">
+            <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              What Your Customers Will Experience
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              This is what you just went through. Your customers will get the same smart,
+              branded experience customized for YOUR business.
+            </p>
+            {/* Add preview mockups here in future iterations */}
           </div>
 
           {/* CTA Section */}
@@ -231,34 +158,22 @@ export default function ResultsPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {tierConfig.primaryCta && (
-                <a
-                  href={tierConfig.primaryCta.link}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl"
-                >
-                  {tierConfig.primaryCta.icon}
-                  {tierConfig.primaryCta.text}
-                </a>
+                <Link href={tierConfig.primaryCta.link}>
+                  <Button size="lg" className="w-full sm:w-auto">
+                    {tierConfig.primaryCta.icon}
+                    {tierConfig.primaryCta.text}
+                  </Button>
+                </Link>
               )}
               {tierConfig.secondaryCta && (
-                <a
-                  href={tierConfig.secondaryCta.link}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg font-semibold text-foreground bg-card border-2 border-border rounded-lg hover:bg-muted transition-all"
-                >
-                  {tierConfig.secondaryCta.icon}
-                  {tierConfig.secondaryCta.text}
-                </a>
+                <Link href={tierConfig.secondaryCta.link}>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                    {tierConfig.secondaryCta.icon}
+                    {tierConfig.secondaryCta.text}
+                  </Button>
+                </Link>
               )}
             </div>
-          </div>
-
-          {/* Footer Note */}
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            <p>
-              Questions? Contact us at{' '}
-              <a href="https://timelesstechs.com/#contact" className="text-accent hover:underline">
-                timelesstechs.com
-              </a>
-            </p>
           </div>
         </div>
       </main>
@@ -266,202 +181,68 @@ export default function ResultsPage() {
   );
 }
 
-function ScoreBar({
-  label,
-  value,
-  maxValue,
-  color,
-}: {
-  label: string;
-  value: number;
-  maxValue: number;
-  color: string;
-}) {
-  const percentage = Math.min((value / maxValue) * 100, 100);
-
-  return (
-    <div>
-      <div className="flex justify-between text-sm mb-2">
-        <span className="font-medium text-foreground">{label}</span>
-        <span className="text-muted-foreground">
-          {value} / {maxValue} pts
-        </span>
-      </div>
-      <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full bg-${color} transition-all duration-500`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function getTierConfig(tier: string, _score: number) {
-  switch (tier) {
-    case 'qualified':
-      return {
-        label: 'QUALIFIED LEAD',
-        title: 'High Priority - Ready to Buy',
-        description:
-          'Your help desk shows strong readiness for DDIP analysis. We\'re preparing a personalized proposal based on your specific needs.',
-        borderColor: 'border-chart-4',
-        scoreColor: 'text-chart-4',
-        badgeClass: 'bg-chart-4/10 text-chart-4',
-        ctaBackground: 'bg-chart-4/10 border border-chart-4/20',
-        ctaTitle: 'Let\'s Get Started',
-        ctaDescription:
-          'Our team will reach out within 24 hours to discuss your DDIP implementation and share sample insights from similar help desks.',
-        primaryCta: {
-          text: 'Schedule Strategy Call',
-          link: 'https://timelesstechs.com/#contact',
-          icon: <Calendar className="w-5 h-5" />,
-        },
-        secondaryCta: {
-          text: 'Email Us',
-          link: 'mailto:contact@timelesstechs.com',
-          icon: <Mail className="w-5 h-5" />,
-        },
-        nextSteps: [
-          {
-            title: 'Personalized Analysis (24-48 hours)',
-            description:
-              'Our AI is researching your company and help desk environment to create a customized DDIP proposal.',
-          },
-          {
-            title: 'Strategy Call',
-            description:
-              'We\'ll show you sample insights from similar help desks and discuss your specific improvement opportunities.',
-          },
-          {
-            title: 'DDIP Implementation',
-            description:
-              'If it\'s a fit, we\'ll start analyzing your help desk data and deliver actionable recommendations within 2-3 weeks.',
-          },
-        ],
-      };
-
-    case 'hot':
-      return {
-        label: 'HOT LEAD',
-        title: 'Strong Fit - Near-Term Opportunity',
-        description:
-          'Your help desk has significant improvement potential. We\'re preparing personalized insights to show what DDIP could discover.',
-        borderColor: 'border-chart-5',
-        scoreColor: 'text-chart-5',
-        badgeClass: 'bg-chart-5/10 text-chart-5',
-        ctaBackground: 'bg-chart-5/10 border border-chart-5/20',
-        ctaTitle: 'Discover Your Improvement Potential',
-        ctaDescription:
-          'We\'ll contact you soon with sample insights showing what DDIP would uncover in your help desk data.',
-        primaryCta: {
-          text: 'Book a Call',
-          link: 'https://timelesstechs.com/#contact',
-          icon: <Calendar className="w-5 h-5" />,
-        },
-        secondaryCta: {
-          text: 'Learn More About DDIP',
-          link: 'https://timelesstechs.com',
-          icon: <Target className="w-5 h-5" />,
-        },
-        nextSteps: [
-          {
-            title: 'Personalized Insights (2-3 days)',
-            description:
-              'We\'ll research your help desk environment and share examples of what DDIP typically discovers in similar organizations.',
-          },
-          {
-            title: 'Review Sample Analysis',
-            description:
-              'See a sample DDIP report showing potential improvements, cost savings, and root cause identification.',
-          },
-          {
-            title: 'Optional Strategy Call',
-            description:
-              'If interested, we\'ll discuss implementing DDIP for your help desk.',
-          },
-        ],
-      };
-
-    case 'warm':
-      return {
-        label: 'WARM LEAD',
-        title: 'Potential Fit - Mid-Term Nurture',
-        description:
-          'Your help desk could benefit from DDIP, but timing or readiness may need development. Let\'s stay in touch.',
-        borderColor: 'border-chart-2',
-        scoreColor: 'text-chart-2',
-        badgeClass: 'bg-chart-2/10 text-chart-2',
-        ctaBackground: 'bg-chart-2/10 border border-chart-2/20',
-        ctaTitle: 'Stay Connected',
-        ctaDescription:
-          'We\'ll send you helpful resources about help desk optimization and case studies showing DDIP results.',
-        primaryCta: {
-          text: 'Get Free Resources',
-          link: 'https://timelesstechs.com/#contact',
-          icon: <Mail className="w-5 h-5" />,
-        },
-        secondaryCta: {
-          text: 'Retake Assessment',
-          link: '/assessment/quiz',
-          icon: <ArrowRight className="w-5 h-5" />,
-        },
-        nextSteps: [
-          {
-            title: 'Receive Educational Content',
-            description:
-              'We\'ll email case studies and guides about help desk process improvement and data-driven insights.',
-          },
-          {
-            title: 'Join Our Workshop (Optional)',
-            description:
-              'Get invited to webinars showing live DDIP demonstrations and help desk optimization strategies.',
-          },
-          {
-            title: 'Retake When Ready',
-            description:
-              'As your help desk matures or budget/timeline aligns, retake the assessment to explore DDIP implementation.',
-          },
-        ],
-      };
-
-    case 'cold':
-    default:
-      return {
-        label: 'EARLY STAGE',
-        title: 'Early Stage - Long-Term Nurture',
-        description:
-          'DDIP works best with established help desks and clear improvement goals. Let\'s stay in touch as your needs evolve.',
-        borderColor: 'border-muted',
-        scoreColor: 'text-muted-foreground',
-        badgeClass: 'bg-muted text-muted-foreground',
-        ctaBackground: 'bg-muted/30 border border-muted',
-        ctaTitle: 'Build Your Foundation',
-        ctaDescription:
-          'We\'ll share resources to help you establish help desk best practices and prepare for data-driven optimization.',
-        primaryCta: {
-          text: 'Get Help Desk Resources',
-          link: 'https://timelesstechs.com/#contact',
-          icon: <Mail className="w-5 h-5" />,
-        },
-        secondaryCta: null,
-        nextSteps: [
-          {
-            title: 'Foundational Resources',
-            description:
-              'Receive guides on help desk setup, ticketing best practices, and metrics to track.',
-          },
-          {
-            title: 'Build Your Data History',
-            description:
-              'Focus on collecting 12-18 months of ticket data - this is essential for DDIP to deliver value.',
-          },
-          {
-            title: 'Reconnect in 6-12 Months',
-            description:
-              'Once your help desk is established and you have data history, retake the assessment to explore DDIP.',
-          },
-        ],
-      };
+function getFitTierConfig(score: number) {
+  if (score >= 70) {
+    return {
+      label: 'GREAT FIT',
+      title: 'Lead Agent is Perfect for You!',
+      description: 'Based on your responses, you have the volume, team size, and pain points where Lead Agent delivers maximum value.',
+      borderColor: 'border-chart-4',
+      scoreColor: 'text-chart-4',
+      badgeClass: 'bg-chart-4/10 text-chart-4',
+      ctaBackground: 'bg-chart-4/10 border border-chart-4/20',
+      ctaTitle: "Let's Get Started",
+      ctaDescription: 'Start your free trial today and see results within 24 hours.',
+      primaryCta: {
+        text: 'Start Free Trial',
+        link: '/sign-up',
+        icon: <CheckCircle className="w-5 h-5 mr-2" />,
+      },
+      secondaryCta: {
+        text: 'Schedule Demo',
+        link: 'https://calendly.com/your-link',
+        icon: <Calendar className="w-5 h-5 mr-2" />,
+      },
+    };
+  } else if (score >= 40) {
+    return {
+      label: 'GOOD FIT',
+      title: 'Lead Agent Could Help',
+      description: 'You have some good indicators. Let us discuss how Lead Agent can address your specific needs.',
+      borderColor: 'border-chart-2',
+      scoreColor: 'text-chart-2',
+      badgeClass: 'bg-chart-2/10 text-chart-2',
+      ctaBackground: 'bg-chart-2/10 border border-chart-2/20',
+      ctaTitle: 'Learn More About Lead Agent',
+      ctaDescription: 'Schedule a demo to see if we can solve your specific challenges.',
+      primaryCta: {
+        text: 'Schedule Demo',
+        link: 'https://calendly.com/your-link',
+        icon: <Calendar className="w-5 h-5 mr-2" />,
+      },
+      secondaryCta: {
+        text: 'See Pricing',
+        link: '/#pricing',
+        icon: <TrendingUp className="w-5 h-5 mr-2" />,
+      },
+    };
+  } else {
+    return {
+      label: 'EARLY STAGE',
+      title: 'Build Your Foundation First',
+      description: 'Lead Agent works best with established lead flow. We will send resources to help you get there.',
+      borderColor: 'border-muted',
+      scoreColor: 'text-muted-foreground',
+      badgeClass: 'bg-muted text-muted-foreground',
+      ctaBackground: 'bg-muted/30 border border-muted',
+      ctaTitle: 'Stay in Touch',
+      ctaDescription: 'Get free resources to grow your lead volume and qualification process.',
+      primaryCta: {
+        text: 'Get Free Resources',
+        link: 'https://calendly.com/your-link',
+        icon: <Mail className="w-5 h-5 mr-2" />,
+      },
+      secondaryCta: null,
+    };
   }
 }
