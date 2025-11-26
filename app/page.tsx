@@ -37,13 +37,9 @@ export default function Home() {
 
             {/* Show Sign In button to non-authenticated users */}
             <SignedOut>
-              <SignInButton
-                mode="redirect"
-                redirectUrl="/dashboard"
-                signInFallbackRedirectUrl="/dashboard"
-              >
+              <Link href="/sign-in">
                 <Button variant="outline" size="sm">Sign In</Button>
-              </SignInButton>
+              </Link>
             </SignedOut>
           </nav>
         </div>
