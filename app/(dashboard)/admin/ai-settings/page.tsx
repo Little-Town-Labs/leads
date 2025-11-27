@@ -12,9 +12,33 @@ export default async function AiSettingsPage() {
     return <div>No organization context</div>;
   }
 
-  const config = await getAiConfigAction();
-  const monthlyUsage = await getMonthlyUsage(orgId);
-  const usingByok = await isUsingCustomApiKey(orgId);
+  let config;
+  let monthlyUsage;
+  let usingByok = false;
+
+  try {
+    config = await getAiConfigAction();
+    monthlyUsage = await getMonthlyUsage(orgId);
+    usingByok = await isUsingCustomApiKey(orgId);
+  } catch (error) {
+    console.error('Error loading AI settings:', error);
+    return (
+      <div className="space-y-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-semibold text-yellow-900 mb-2">Database Migration Required</h3>
+          <p className="text-sm text-yellow-800 mb-4">
+            The AI settings feature requires database schema updates. Please run the database migration:
+          </p>
+          <code className="block bg-yellow-100 text-yellow-900 p-3 rounded text-sm">
+            pnpm db:push
+          </code>
+          <p className="text-sm text-yellow-800 mt-4">
+            After running the migration, refresh this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

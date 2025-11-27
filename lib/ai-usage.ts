@@ -211,60 +211,76 @@ export async function getUsageStats(
   startDate: Date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
   endDate: Date = new Date()
 ) {
-  const records = await db.query.aiUsage.findMany({
-    where: and(
-      eq(aiUsage.orgId, orgId),
-      gte(aiUsage.createdAt, startDate),
-      lte(aiUsage.createdAt, endDate)
-    ),
-    orderBy: [desc(aiUsage.createdAt)],
-  });
+  try {
+    const records = await db.query.aiUsage.findMany({
+      where: and(
+        eq(aiUsage.orgId, orgId),
+        gte(aiUsage.createdAt, startDate),
+        lte(aiUsage.createdAt, endDate)
+      ),
+      orderBy: [desc(aiUsage.createdAt)],
+    });
 
-  const totalTokens = records.reduce((sum, r) => sum + (r.totalTokens || 0), 0);
-  const totalCost = records.reduce((sum, r) => sum + (r.actualCost || r.estimatedCost || 0), 0);
-  const totalRequests = records.length;
-  const successfulRequests = records.filter((r) => r.success).length;
-  const failedRequests = records.filter((r) => !r.success).length;
+    const totalTokens = records.reduce((sum, r) => sum + (r.totalTokens || 0), 0);
+    const totalCost = records.reduce((sum, r) => sum + (r.actualCost || r.estimatedCost || 0), 0);
+    const totalRequests = records.length;
+    const successfulRequests = records.filter((r) => r.success).length;
+    const failedRequests = records.filter((r) => !r.success).length;
 
-  // Group by operation
-  const byOperation = records.reduce(
-    (acc, r) => {
-      if (!acc[r.operation]) {
-        acc[r.operation] = { count: 0, tokens: 0, cost: 0 };
-      }
-      acc[r.operation].count++;
-      acc[r.operation].tokens += r.totalTokens || 0;
-      acc[r.operation].cost += r.actualCost || r.estimatedCost || 0;
-      return acc;
-    },
-    {} as Record<string, { count: number; tokens: number; cost: number }>
-  );
+    // Group by operation
+    const byOperation = records.reduce(
+      (acc, r) => {
+        if (!acc[r.operation]) {
+          acc[r.operation] = { count: 0, tokens: 0, cost: 0 };
+        }
+        acc[r.operation].count++;
+        acc[r.operation].tokens += r.totalTokens || 0;
+        acc[r.operation].cost += r.actualCost || r.estimatedCost || 0;
+        return acc;
+      },
+      {} as Record<string, { count: number; tokens: number; cost: number }>
+    );
 
-  // Group by model
-  const byModel = records.reduce(
-    (acc, r) => {
-      if (!acc[r.model]) {
-        acc[r.model] = { count: 0, tokens: 0, cost: 0 };
-      }
-      acc[r.model].count++;
-      acc[r.model].tokens += r.totalTokens || 0;
-      acc[r.model].cost += r.actualCost || r.estimatedCost || 0;
-      return acc;
-    },
-    {} as Record<string, { count: number; tokens: number; cost: number }>
-  );
+    // Group by model
+    const byModel = records.reduce(
+      (acc, r) => {
+        if (!acc[r.model]) {
+          acc[r.model] = { count: 0, tokens: 0, cost: 0 };
+        }
+        acc[r.model].count++;
+        acc[r.model].tokens += r.totalTokens || 0;
+        acc[r.model].cost += r.actualCost || r.estimatedCost || 0;
+        return acc;
+      },
+      {} as Record<string, { count: number; tokens: number; cost: number }>
+    );
 
-  return {
-    totalTokens,
-    totalCost, // In cents
-    totalRequests,
-    successfulRequests,
-    failedRequests,
-    successRate: totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 0,
-    byOperation,
-    byModel,
-    records,
-  };
+    return {
+      totalTokens,
+      totalCost, // In cents
+      totalRequests,
+      successfulRequests,
+      failedRequests,
+      successRate: totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 0,
+      byOperation,
+      byModel,
+      records,
+    };
+  } catch (error) {
+    console.error('Error fetching usage stats:', error);
+    // Return empty stats if table doesn't exist or query fails
+    return {
+      totalTokens: 0,
+      totalCost: 0,
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      successRate: 0,
+      byOperation: {},
+      byModel: {},
+      records: [],
+    };
+  }
 }
 
 /**
