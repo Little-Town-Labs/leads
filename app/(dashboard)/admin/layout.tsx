@@ -7,7 +7,8 @@ import {
   Palette,
   Mail,
   Workflow,
-  BookOpen
+  BookOpen,
+  Cpu
 } from 'lucide-react';
 
 export default async function AdminLayout({
@@ -26,6 +27,7 @@ export default async function AdminLayout({
     { href: '/admin/branding', label: 'Branding', icon: Palette },
     { href: '/admin/email', label: 'Email Templates', icon: Mail },
     { href: '/admin/workflows', label: 'AI Workflows', icon: Workflow },
+    { href: '/admin/ai-settings', label: 'AI Settings', icon: Cpu },
     { href: '/admin/knowledge-base', label: 'Knowledge Base', icon: BookOpen },
   ];
 

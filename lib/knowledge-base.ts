@@ -1,28 +1,55 @@
 import { db } from '@/db';
 import { knowledgeBaseDocs, knowledgeBaseChunks } from '@/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { embed } from 'ai';
+import { getEmbeddingModel } from './ai-resolver';
+import { trackAiUsage } from './ai-usage';
+import { getAiConfig } from './ai-config';
 
 /**
- * Generate embeddings for text using OpenAI's embedding model
+ * Generate embeddings for text using the organization's configured embedding model
  */
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string, orgId: string): Promise<number[]> {
+  const startTime = Date.now();
+  const config = await getAiConfig(orgId);
+  const model = await getEmbeddingModel(orgId);
+
   try {
-    const response = await fetch('https://gateway.ai.cloudflare.com/v1/ce30696fe41ecef47976b85ec2d0963b/lead-agent/openai/embeddings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.AI_GATEWAY_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-3-small',
-        input: text,
-      }),
+    const { embedding } = await embed({
+      model,
+      value: text,
     });
 
-    const data = await response.json();
-    return data.data[0].embedding;
+    // Track usage (embeddings typically don't return token counts, estimate based on text length)
+    const estimatedTokens = Math.ceil(text.length / 4);
+    await trackAiUsage({
+      orgId,
+      operation: 'embedding',
+      provider: config.provider,
+      model: config.models.embedding,
+      inputTokens: estimatedTokens,
+      outputTokens: 0,
+      totalTokens: estimatedTokens,
+      requestDuration: Date.now() - startTime,
+      success: true,
+    });
+
+    return embedding;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    // Track failed request
+    const estimatedTokens = Math.ceil(text.length / 4);
+    await trackAiUsage({
+      orgId,
+      operation: 'embedding',
+      provider: config.provider,
+      model: config.models.embedding,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      requestDuration: Date.now() - startTime,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }
@@ -58,7 +85,7 @@ export async function searchKnowledgeBase(
 ): Promise<Array<{ content: string; title: string; similarity: number }>> {
   try {
     // Generate embedding for the query
-    const queryEmbedding = await generateEmbedding(query);
+    const queryEmbedding = await generateEmbedding(query, orgId);
 
     // Get all active chunks for the organization
     const chunks = await db
@@ -154,7 +181,7 @@ export async function addDocumentToKnowledgeBase(
 ): Promise<string> {
   try {
     // Generate embedding for the full document
-    const docEmbedding = await generateEmbedding(content.slice(0, 8000)); // Limit to ~8k chars
+    const docEmbedding = await generateEmbedding(content.slice(0, 8000), orgId); // Limit to ~8k chars
 
     // Create the document record
     const [doc] = await db
@@ -174,7 +201,7 @@ export async function addDocumentToKnowledgeBase(
 
     // Generate embeddings for each chunk and insert
     for (let i = 0; i < chunks.length; i++) {
-      const chunkEmbedding = await generateEmbedding(chunks[i]);
+      const chunkEmbedding = await generateEmbedding(chunks[i], orgId);
 
       await db.insert(knowledgeBaseChunks).values({
         orgId,

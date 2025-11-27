@@ -1,13 +1,15 @@
 import {
   humanFeedback,
   qualify,
-  researchAgent,
+  createResearchAgent,
   writeEmail
 } from '@/lib/services';
 import { QualificationSchema } from '@/lib/types';
 import { db } from '@/db';
 import { workflows, leads, type Lead, type Workflow } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { trackAiUsage } from '@/lib/ai-usage';
+import { getAiConfig } from '@/lib/ai-config';
 
 /**
  * step to create a workflow record in the database
@@ -27,25 +29,63 @@ export const stepCreateWorkflow = async (lead: Lead): Promise<Workflow> => {
 /**
  * step to research the lead
  */
-export const stepResearch = async (lead: Lead) => {
+export const stepResearch = async (lead: Lead, workflowId: string) => {
   'use step';
 
-  const { text: research } = await researchAgent.generate({
-    prompt: `Research the lead: ${JSON.stringify({
-      name: lead.name,
-      email: lead.email,
-      company: lead.company,
-      message: lead.message
-    })}`
-  });
+  const startTime = Date.now();
+  const config = await getAiConfig(lead.orgId);
+  const researchAgent = await createResearchAgent(lead.orgId);
 
-  return research;
+  try {
+    const { text: research, usage } = await researchAgent.generate({
+      prompt: `Research the lead: ${JSON.stringify({
+        name: lead.name,
+        email: lead.email,
+        company: lead.company,
+        message: lead.message
+      })}`
+    });
+
+    // Track agent usage
+    await trackAiUsage({
+      orgId: lead.orgId,
+      operation: 'research',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: usage?.inputTokens || 0,
+      outputTokens: usage?.outputTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+      leadId: lead.id,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: true,
+    });
+
+    return research;
+  } catch (error) {
+    // Track failed request
+    await trackAiUsage({
+      orgId: lead.orgId,
+      operation: 'research',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      leadId: lead.id,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
 };
 
 /**
  * step to qualify the lead
  */
-export const stepQualify = async (lead: Lead, research: string) => {
+export const stepQualify = async (lead: Lead, research: string, workflowId: string) => {
   'use step';
 
   const qualification = await qualify({
@@ -54,7 +94,7 @@ export const stepQualify = async (lead: Lead, research: string) => {
     company: lead.company || '',
     phone: lead.phone || '',
     message: lead.message
-  }, research);
+  }, research, lead.orgId, lead.id, workflowId);
 
   return qualification;
 };
@@ -80,11 +120,14 @@ export const stepSaveQualification = async (
  */
 export const stepWriteEmail = async (
   research: string,
-  qualification: QualificationSchema
+  qualification: QualificationSchema,
+  orgId: string,
+  leadId: string,
+  workflowId: string
 ) => {
   'use step';
 
-  const email = await writeEmail(research, qualification);
+  const email = await writeEmail(research, qualification, orgId, leadId, workflowId);
   return email;
 };
 

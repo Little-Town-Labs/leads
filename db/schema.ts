@@ -113,6 +113,35 @@ export const tenants = pgTable(
       lastResetDate: new Date().toISOString(),
     }),
 
+    // AI Configuration (BYOK)
+    aiConfig: jsonb('ai_config').$type<{
+      // Which provider customer wants to use
+      provider: 'openrouter' | 'openai' | 'anthropic' | 'platform_default';
+
+      // Model preferences per operation
+      models: {
+        chat: string; // e.g., 'anthropic/claude-3.5-sonnet', 'openai/gpt-4-turbo'
+        embedding: string; // e.g., 'text-embedding-3-small'
+      };
+
+      // Customer's encrypted API key
+      encryptedApiKey?: string; // AES-256-GCM encrypted
+
+      // OpenRouter-specific settings
+      openrouterSettings?: {
+        siteUrl?: string; // For OpenRouter rankings
+        siteName?: string; // For OpenRouter rankings
+      };
+
+      // Settings
+      usageTracking: boolean; // Whether to track detailed usage
+      costAlerts?: {
+        enabled: boolean;
+        monthlyThreshold: number; // Alert when monthly cost exceeds (in cents)
+        email: string; // Where to send alerts
+      };
+    }>(),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -353,6 +382,51 @@ export const knowledgeBaseChunks = pgTable(
   })
 );
 
+/**
+ * AI Usage table - tracks all AI API calls for usage analytics and cost tracking
+ * Used for BYOK (Bring Your Own Key) feature to show customers their AI usage
+ */
+export const aiUsage = pgTable(
+  'ai_usage',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orgId: text('org_id').notNull(),
+
+    // Request identification
+    operation: text('operation').notNull(), // 'qualification', 'email_generation', 'research', 'embedding'
+    provider: text('provider').notNull(), // 'openrouter', 'openai', 'anthropic', 'platform'
+    model: text('model').notNull(), // 'anthropic/claude-3.5-sonnet', 'openai/gpt-4-turbo', etc.
+
+    // Token usage
+    inputTokens: integer('input_tokens').default(0),
+    outputTokens: integer('output_tokens').default(0),
+    totalTokens: integer('total_tokens').default(0),
+
+    // Cost (in cents) - from provider's response or estimation
+    actualCost: integer('actual_cost'), // From OpenRouter usage API
+    estimatedCost: integer('estimated_cost').default(0),
+
+    // Context
+    leadId: uuid('lead_id').references(() => leads.id),
+    workflowId: text('workflow_id'),
+
+    // Request metadata
+    requestDuration: integer('request_duration'), // milliseconds
+    success: boolean('success').default(true),
+    errorMessage: text('error_message'),
+
+    // Timestamps
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => ({
+    orgIdIndex: index('ai_usage_org_id_idx').on(table.orgId),
+    createdAtIndex: index('ai_usage_created_at_idx').on(table.createdAt),
+    operationIndex: index('ai_usage_operation_idx').on(table.operation),
+    providerIndex: index('ai_usage_provider_idx').on(table.provider),
+    modelIndex: index('ai_usage_model_idx').on(table.model),
+  })
+);
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -378,3 +452,5 @@ export type KnowledgeBaseDoc = typeof knowledgeBaseDocs.$inferSelect;
 export type NewKnowledgeBaseDoc = typeof knowledgeBaseDocs.$inferInsert;
 export type KnowledgeBaseChunk = typeof knowledgeBaseChunks.$inferSelect;
 export type NewKnowledgeBaseChunk = typeof knowledgeBaseChunks.$inferInsert;
+export type AiUsage = typeof aiUsage.$inferSelect;
+export type NewAiUsage = typeof aiUsage.$inferInsert;

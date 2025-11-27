@@ -9,7 +9,21 @@ This folder contains comprehensive documentation for the Lead Agent multi-tenant
 
 ### Implementation Guides
 - **[IMPLEMENTATION-SUMMARY.md](IMPLEMENTATION-SUMMARY.md)** - Multi-tenant implementation summary (Phases 1-2 complete)
+- **[IMPLEMENTATION_PLAN_DEMO_ASSESSMENT.md](IMPLEMENTATION_PLAN_DEMO_ASSESSMENT.md)** - Demo assessment implementation plan
+- **[DEMO_ASSESSMENT_IMPLEMENTATION_COMPLETE.md](DEMO_ASSESSMENT_IMPLEMENTATION_COMPLETE.md)** - Demo assessment completion summary
 - **[MULTI-TENANT-TESTING.md](MULTI-TENANT-TESTING.md)** - Local testing guide for subdomain routing
+
+### Planned Features
+- **[CLERK_BILLING_INTEGRATION.md](CLERK_BILLING_INTEGRATION.md)** - 🆕 Clerk Billing integration plan (B2C/B2B subscriptions, platform monitoring)
+- **[AI_KEY_MANAGEMENT_BYOK.md](AI_KEY_MANAGEMENT_BYOK.md)** - 🆕 AI BYOK (Bring Your Own Key) implementation plan
+
+### Architecture Documentation
+- **[MULTI_TENANT_ARCHITECTURE.md](MULTI_TENANT_ARCHITECTURE.md)** - Multi-tenant architecture patterns and design
+- **[ARCHITECTURE_FLOWS.md](ARCHITECTURE_FLOWS.md)** - System flow diagrams and interaction patterns
+- **[ARCHITECTURE_UPDATE_SUMMARY.md](ARCHITECTURE_UPDATE_SUMMARY.md)** - Architecture evolution summary
+- **[SAAS_CUSTOMER_ACQUISITION_FLOW.md](SAAS_CUSTOMER_ACQUISITION_FLOW.md)** - Customer onboarding flow design
+- **[URL_CONFIGURATION.md](URL_CONFIGURATION.md)** - URL structure and routing configuration
+- **[tech-stack-detection.md](tech-stack-detection.md)** - Technology detection implementation
 
 ### Deployment
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete Vercel deployment guide with environment setup
@@ -20,7 +34,10 @@ This folder contains comprehensive documentation for the Lead Agent multi-tenant
 
 ### Current Status
 ✅ **Phase 1 & 2 Complete**: Multi-tenant architecture with subdomain routing
-⏭️ **Phase 3 Next**: Quiz implementation for tenant-specific assessments
+✅ **Quiz & Assessment**: Demo assessment implemented
+📋 **Planned Features**:
+  - Clerk Billing integration for B2C/B2B subscriptions ([details](CLERK_BILLING_INTEGRATION.md))
+  - AI BYOK (Bring Your Own Key) for customer-managed AI costs ([details](AI_KEY_MANAGEMENT_BYOK.md))
 
 ### Active Tenants
 1. **Lead Agent Demo** (`lead-agent` subdomain) - Product demo

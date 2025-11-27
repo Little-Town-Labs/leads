@@ -51,10 +51,10 @@ export const workflowInbound = async (lead: Lead | LeadWithTenant) => {
     const workflow = await stepCreateWorkflow(lead);
 
     // Research the lead
-    const research = await stepResearch(lead);
+    const research = await stepResearch(lead, workflow.id);
 
     // Qualify the lead
-    const qualification = await stepQualify(lead, research);
+    const qualification = await stepQualify(lead, research, workflow.id);
 
     // Save qualification to lead record
     await stepSaveQualification(lead.id, qualification);
@@ -64,7 +64,7 @@ export const workflowInbound = async (lead: Lead | LeadWithTenant) => {
       qualification.category === 'QUALIFIED' ||
       qualification.category === 'FOLLOW_UP'
     ) {
-      const email = await stepWriteEmail(research, qualification);
+      const email = await stepWriteEmail(research, qualification, lead.orgId, lead.id, workflow.id);
 
       // Save research results and email to workflow
       await stepSaveWorkflowData(workflow.id, research, email);

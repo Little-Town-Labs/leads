@@ -13,23 +13,67 @@ import {
 import { sendSlackMessageWithButtons } from '@/lib/slack';
 import { z } from 'zod';
 import { exa } from '@/lib/exa';
+import { getChatModel } from './ai-resolver';
+import { trackAiUsage } from './ai-usage';
+import { getAiConfig } from './ai-config';
 
 /**
  * Qualify the lead
  */
 export async function qualify(
   lead: FormSchema,
-  research: string
+  research: string,
+  orgId: string,
+  leadId?: string,
+  workflowId?: string
 ): Promise<QualificationSchema> {
-  const { object } = await generateObject({
-    model: 'openai/gpt-5',
-    schema: qualificationSchema,
-    prompt: `Qualify the lead and give a reason for the qualification based on the following information: LEAD DATA: ${JSON.stringify(
-      lead
-    )} and RESEARCH: ${research}`
-  });
+  const startTime = Date.now();
+  const config = await getAiConfig(orgId);
+  const model = await getChatModel(orgId);
 
-  return object;
+  try {
+    const { object, usage } = await generateObject({
+      model,
+      schema: qualificationSchema,
+      prompt: `Qualify the lead and give a reason for the qualification based on the following information: LEAD DATA: ${JSON.stringify(
+        lead
+      )} and RESEARCH: ${research}`
+    });
+
+    // Track usage
+    await trackAiUsage({
+      orgId,
+      operation: 'qualification',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: usage?.inputTokens || 0,
+      outputTokens: usage?.outputTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+      leadId,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: true,
+    });
+
+    return object;
+  } catch (error) {
+    // Track failed request
+    await trackAiUsage({
+      orgId,
+      operation: 'qualification',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      leadId,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
 }
 
 /**
@@ -37,16 +81,57 @@ export async function qualify(
  */
 export async function writeEmail(
   research: string,
-  qualification: QualificationSchema
+  qualification: QualificationSchema,
+  orgId: string,
+  leadId?: string,
+  workflowId?: string
 ) {
-  const { text } = await generateText({
-    model: 'openai/gpt-5',
-    prompt: `Write an email for a ${
-      qualification.category
-    } lead based on the following information: ${JSON.stringify(research)}`
-  });
+  const startTime = Date.now();
+  const config = await getAiConfig(orgId);
+  const model = await getChatModel(orgId);
 
-  return text;
+  try {
+    const { text, usage } = await generateText({
+      model,
+      prompt: `Write an email for a ${
+        qualification.category
+      } lead based on the following information: ${JSON.stringify(research)}`
+    });
+
+    // Track usage
+    await trackAiUsage({
+      orgId,
+      operation: 'email_generation',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: usage?.inputTokens || 0,
+      outputTokens: usage?.outputTokens || 0,
+      totalTokens: usage?.totalTokens || 0,
+      leadId,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: true,
+    });
+
+    return text;
+  } catch (error) {
+    // Track failed request
+    await trackAiUsage({
+      orgId,
+      operation: 'email_generation',
+      provider: config.provider,
+      model: config.models.chat,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      leadId,
+      workflowId,
+      requestDuration: Date.now() - startTime,
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
 }
 
 /**
@@ -332,31 +417,39 @@ const queryKnowledgeBase = tool({
 });
 
 /**
- * Research agent
+ * Create a research agent for an organization
  *
- * This agent is used to research the lead and return a comprehensive report
+ * This agent is used to research the lead and return a comprehensive report.
+ * Each organization gets their own agent instance with their configured AI model.
+ *
+ * @param orgId - Clerk organization ID
+ * @returns Research agent instance
  */
-export const researchAgent = new Agent({
-  model: 'openai/gpt-5',
-  system: `
+export async function createResearchAgent(orgId: string) {
+  const model = await getChatModel(orgId);
+
+  return new Agent({
+    model,
+    system: `
   You are a researcher to find information about a lead. You are given a lead and you need to find information about the lead.
-  
-  You can use the tools provided to you to find information about the lead: 
+
+  You can use the tools provided to you to find information about the lead:
   - search: Searches the web for information
   - queryKnowledgeBase: Queries the knowledge base for the given query
   - fetchUrl: Fetches the contents of a public URL
   - crmSearch: Searches the CRM for the given company name
   - techStackAnalysis: Analyzes the tech stack of the given domain
-  
+
   Synthesize the information you find into a comprehensive report.
   `,
-  tools: {
-    search,
-    queryKnowledgeBase,
-    fetchUrl,
-    crmSearch,
-    techStackAnalysis
-    // add other tools here
-  },
-  stopWhen: [stepCountIs(20)] // stop after max 20 steps
-});
+    tools: {
+      search,
+      queryKnowledgeBase,
+      fetchUrl,
+      crmSearch,
+      techStackAnalysis
+      // add other tools here
+    },
+    stopWhen: [stepCountIs(20)] // stop after max 20 steps
+  });
+}

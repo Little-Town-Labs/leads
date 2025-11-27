@@ -12,8 +12,9 @@ An intelligent lead qualification system that:
 - Generates personalized outreach emails
 - Provides human-in-the-loop approval via dashboard or Slack
 - Supports multiple organizations with complete data isolation
+- **BYOK (Bring Your Own Key)**: Organizations can use their own AI API keys for unlimited usage
 
-**Multi-Tenant Architecture**: Each organization gets their own branded subdomain, custom quiz, and isolated data.
+**Multi-Tenant Architecture**: Each organization gets their own branded subdomain, custom quiz, isolated data, and optional custom AI configuration.
 
 ## Deploy with Vercel
 
@@ -43,8 +44,9 @@ An intelligent lead qualification system that:
 - pnpm (recommended)
 - [Neon Database](https://neon.tech) account
 - [Clerk](https://clerk.com) account (with Organizations enabled)
-- [Vercel AI Gateway](https://vercel.com/ai-gateway) API key
+- [OpenRouter](https://openrouter.ai/) API key (recommended for 100+ models) OR [Vercel AI Gateway](https://vercel.com/ai-gateway) API key
 - [Exa.ai](https://exa.ai/) API key
+- Encryption secret for BYOK (generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
 - (Optional) Slack workspace
 
 ### Installation
@@ -56,10 +58,15 @@ pnpm install
 # Copy environment template
 cp .env.example .env.local
 
+# Generate encryption secret for BYOK
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
 # Configure required variables in .env.local:
 # - DATABASE_URL (from Neon)
 # - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY + CLERK_WEBHOOK_SECRET
-# - AI_GATEWAY_API_KEY + EXA_API_KEY
+# - ENCRYPTION_SECRET (generated above)
+# - OPENROUTER_API_KEY (recommended) OR AI_GATEWAY_API_KEY
+# - EXA_API_KEY
 # - (Optional) SLACK_BOT_TOKEN + SLACK_SIGNING_SECRET + SLACK_CHANNEL_ID
 
 # Run database migrations
@@ -78,6 +85,9 @@ lead-agent/
 ├── app/
 │   ├── (dashboard)/        # Multi-tenant dashboard (subdomain routing)
 │   │   ├── admin/          # Admin management panel
+│   │   │   ├── ai-settings/# AI configuration & usage analytics
+│   │   │   ├── branding/   # Brand customization
+│   │   │   └── quiz/       # Quiz builder
 │   │   ├── analytics/      # Analytics dashboard
 │   │   └── settings/       # Organization settings
 │   ├── api/
@@ -86,8 +96,12 @@ lead-agent/
 │   │   └── webhooks/clerk/ # Clerk organization sync
 │   └── select-organization/# Organization switcher
 ├── db/
-│   └── schema.ts           # Drizzle database schema
+│   └── schema.ts           # Drizzle database schema (with AI config)
 ├── lib/
+│   ├── ai-config.ts        # AI configuration management
+│   ├── ai-resolver.ts      # Model resolution per organization
+│   ├── ai-usage.ts         # Usage tracking & analytics
+│   ├── encryption.ts       # API key encryption (AES-256-GCM)
 │   ├── services.ts         # Business logic (qualify, research, email)
 │   ├── slack.ts            # Slack integration
 │   └── types.ts            # Zod schemas and types
@@ -108,6 +122,22 @@ Uses Workflow DevKit's `'use workflow'` directive for reliable background proces
 
 ### Human-in-the-Loop Approval
 Generated emails require approval via built-in dashboard or optional Slack integration before sending.
+
+### BYOK (Bring Your Own Key)
+Organizations can configure their own AI provider and API keys:
+- **OpenRouter** (recommended): Access to 100+ models with a single API key
+- **OpenAI Direct**: Use enterprise OpenAI agreements
+- **Anthropic Direct**: Use enterprise Anthropic agreements
+- **Platform Default**: Free tier with usage limits
+
+**Features**:
+- Encrypted API key storage (AES-256-GCM)
+- Real-time usage tracking (tokens, costs, success rates)
+- Per-operation and per-model analytics
+- Cost alerts and monthly reports
+- CSV export for billing reconciliation
+
+Navigate to `/admin/ai-settings` to configure AI settings for your organization.
 
 ## License
 
