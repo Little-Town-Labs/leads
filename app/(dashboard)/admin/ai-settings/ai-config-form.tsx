@@ -81,7 +81,12 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
         toast.success('AI configuration updated successfully');
         setApiKey(''); // Clear API key field after save
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to update configuration');
+        console.error('Form submission error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update configuration';
+        toast.error(errorMessage, {
+          description: error instanceof Error && error.stack ? 'Check console for details' : undefined,
+          duration: 10000,
+        });
       }
     });
   };
