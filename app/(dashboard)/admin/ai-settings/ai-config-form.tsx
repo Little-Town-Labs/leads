@@ -35,6 +35,8 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
   const [embeddingModel, setEmbeddingModel] = useState(initialConfig.models.embedding);
   const [customChatModel, setCustomChatModel] = useState('');
   const [customEmbeddingModel, setCustomEmbeddingModel] = useState('');
+  const [chatModelFilter, setChatModelFilter] = useState('');
+  const [embeddingModelFilter, setEmbeddingModelFilter] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [openrouterSiteUrl, setOpenrouterSiteUrl] = useState(
@@ -116,76 +118,259 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
     });
   };
 
-  // Model options based on provider
+  // Comprehensive model options organized by maker - Full OpenRouter catalog
   const modelOptions = {
     openrouter: {
       chat: [
-        { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Recommended)' },
-        { value: 'anthropic/claude-3.5-sonnet:beta', label: 'Claude 3.5 Sonnet (Beta)' },
-        { value: 'anthropic/claude-3-opus', label: 'Claude 3 Opus' },
-        { value: 'anthropic/claude-3-haiku', label: 'Claude 3 Haiku (Fast)' },
-        { value: 'openai/gpt-4o', label: 'GPT-4o' },
-        { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Fast & Cheap)' },
-        { value: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo' },
-        { value: 'openai/o1-preview', label: 'OpenAI o1 Preview' },
-        { value: 'openai/o1-mini', label: 'OpenAI o1 Mini' },
-        { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5' },
-        { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5 (Fast)' },
-        { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash (Free)' },
-        { value: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
-        { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
-        { value: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B' },
-        { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
-        { value: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
-        { value: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B' },
-        { value: 'x-ai/grok-beta', label: 'Grok Beta' },
-        { value: 'perplexity/llama-3.1-sonar-large-128k-online', label: 'Perplexity Sonar (Online)' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        // Anthropic Claude
+        { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet', maker: 'Anthropic', recommended: true },
+        { value: 'anthropic/claude-3.5-sonnet:beta', label: 'Claude 3.5 Sonnet (Beta)', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3.5-sonnet-20240620', label: 'Claude 3.5 Sonnet (20240620)', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-opus', label: 'Claude 3 Opus', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-opus-20240229', label: 'Claude 3 Opus (20240229)', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-sonnet', label: 'Claude 3 Sonnet', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-sonnet-20240229', label: 'Claude 3 Sonnet (20240229)', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-haiku', label: 'Claude 3 Haiku', maker: 'Anthropic' },
+        { value: 'anthropic/claude-3-haiku-20240307', label: 'Claude 3 Haiku (20240307)', maker: 'Anthropic' },
+        { value: 'anthropic/claude-2', label: 'Claude 2', maker: 'Anthropic' },
+        { value: 'anthropic/claude-2.1', label: 'Claude 2.1', maker: 'Anthropic' },
+        { value: 'anthropic/claude-2.0', label: 'Claude 2.0', maker: 'Anthropic' },
+        { value: 'anthropic/claude-instant-1', label: 'Claude Instant 1', maker: 'Anthropic' },
+        { value: 'anthropic/claude-instant-1.2', label: 'Claude Instant 1.2', maker: 'Anthropic' },
+
+        // OpenAI GPT
+        { value: 'openai/gpt-4o', label: 'GPT-4o', maker: 'OpenAI' },
+        { value: 'openai/gpt-4o-2024-11-20', label: 'GPT-4o (2024-11-20)', maker: 'OpenAI' },
+        { value: 'openai/gpt-4o-2024-08-06', label: 'GPT-4o (2024-08-06)', maker: 'OpenAI' },
+        { value: 'openai/gpt-4o-2024-05-13', label: 'GPT-4o (2024-05-13)', maker: 'OpenAI' },
+        { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', maker: 'OpenAI' },
+        { value: 'openai/gpt-4o-mini-2024-07-18', label: 'GPT-4o Mini (2024-07-18)', maker: 'OpenAI' },
+        { value: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo', maker: 'OpenAI' },
+        { value: 'openai/gpt-4-turbo-preview', label: 'GPT-4 Turbo Preview', maker: 'OpenAI' },
+        { value: 'openai/gpt-4-1106-preview', label: 'GPT-4 1106 Preview', maker: 'OpenAI' },
+        { value: 'openai/gpt-4', label: 'GPT-4', maker: 'OpenAI' },
+        { value: 'openai/gpt-4-0314', label: 'GPT-4 (0314)', maker: 'OpenAI' },
+        { value: 'openai/gpt-4-32k', label: 'GPT-4 32k', maker: 'OpenAI' },
+        { value: 'openai/gpt-3.5-turbo', label: 'GPT-3.5 Turbo', maker: 'OpenAI' },
+        { value: 'openai/gpt-3.5-turbo-0125', label: 'GPT-3.5 Turbo (0125)', maker: 'OpenAI' },
+        { value: 'openai/gpt-3.5-turbo-1106', label: 'GPT-3.5 Turbo (1106)', maker: 'OpenAI' },
+        { value: 'openai/gpt-3.5-turbo-16k', label: 'GPT-3.5 Turbo 16k', maker: 'OpenAI' },
+        { value: 'openai/o1-preview', label: 'o1 Preview', maker: 'OpenAI' },
+        { value: 'openai/o1-preview-2024-09-12', label: 'o1 Preview (2024-09-12)', maker: 'OpenAI' },
+        { value: 'openai/o1-mini', label: 'o1 Mini', maker: 'OpenAI' },
+        { value: 'openai/o1-mini-2024-09-12', label: 'o1 Mini (2024-09-12)', maker: 'OpenAI' },
+        { value: 'openai/chatgpt-4o-latest', label: 'ChatGPT-4o Latest', maker: 'OpenAI' },
+
+        // Google Gemini
+        { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash (Free)', maker: 'Google' },
+        { value: 'google/gemini-exp-1206:free', label: 'Gemini Exp 1206 (Free)', maker: 'Google' },
+        { value: 'google/gemini-exp-1121:free', label: 'Gemini Exp 1121 (Free)', maker: 'Google' },
+        { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5', maker: 'Google' },
+        { value: 'google/gemini-pro-1.5-exp', label: 'Gemini Pro 1.5 Experimental', maker: 'Google' },
+        { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5', maker: 'Google' },
+        { value: 'google/gemini-flash-1.5-exp', label: 'Gemini Flash 1.5 Experimental', maker: 'Google' },
+        { value: 'google/gemini-flash-1.5-8b', label: 'Gemini Flash 1.5 8B', maker: 'Google' },
+        { value: 'google/gemini-flash-1.5-8b-exp', label: 'Gemini Flash 1.5 8B Experimental', maker: 'Google' },
+        { value: 'google/gemini-pro', label: 'Gemini Pro', maker: 'Google' },
+        { value: 'google/gemini-pro-vision', label: 'Gemini Pro Vision', maker: 'Google' },
+        { value: 'google/palm-2-chat-bison', label: 'PaLM 2 Chat Bison', maker: 'Google' },
+        { value: 'google/palm-2-codechat-bison', label: 'PaLM 2 CodeChat Bison', maker: 'Google' },
+
+        // Meta Llama
+        { value: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.2-90b-vision-instruct', label: 'Llama 3.2 90B Vision', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.2-11b-vision-instruct', label: 'Llama 3.2 11B Vision', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.2-3b-instruct', label: 'Llama 3.2 3B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.2-1b-instruct', label: 'Llama 3.2 1B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3.1-8b-instruct', label: 'Llama 3.1 8B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3-70b-instruct', label: 'Llama 3 70B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-3-8b-instruct', label: 'Llama 3 8B Instruct', maker: 'Meta' },
+        { value: 'meta-llama/llama-2-70b-chat', label: 'Llama 2 70B Chat', maker: 'Meta' },
+        { value: 'meta-llama/llama-2-13b-chat', label: 'Llama 2 13B Chat', maker: 'Meta' },
+        { value: 'meta-llama/llama-2-7b-chat', label: 'Llama 2 7B Chat', maker: 'Meta' },
+
+        // DeepSeek
+        { value: 'deepseek/deepseek-r1', label: 'DeepSeek R1', maker: 'DeepSeek' },
+        { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat', maker: 'DeepSeek' },
+        { value: 'deepseek/deepseek-coder', label: 'DeepSeek Coder', maker: 'DeepSeek' },
+
+        // Mistral
+        { value: 'mistralai/mistral-large', label: 'Mistral Large', maker: 'Mistral' },
+        { value: 'mistralai/mistral-large-2407', label: 'Mistral Large 2407', maker: 'Mistral' },
+        { value: 'mistralai/mistral-medium', label: 'Mistral Medium', maker: 'Mistral' },
+        { value: 'mistralai/mistral-small', label: 'Mistral Small', maker: 'Mistral' },
+        { value: 'mistralai/mistral-tiny', label: 'Mistral Tiny', maker: 'Mistral' },
+        { value: 'mistralai/mistral-7b-instruct', label: 'Mistral 7B Instruct', maker: 'Mistral' },
+        { value: 'mistralai/mixtral-8x7b-instruct', label: 'Mixtral 8x7B Instruct', maker: 'Mistral' },
+        { value: 'mistralai/mixtral-8x22b-instruct', label: 'Mixtral 8x22B Instruct', maker: 'Mistral' },
+        { value: 'mistralai/codestral-mamba', label: 'Codestral Mamba', maker: 'Mistral' },
+        { value: 'mistralai/pixtral-12b', label: 'Pixtral 12B', maker: 'Mistral' },
+
+        // Cohere
+        { value: 'cohere/command-r-plus', label: 'Command R+', maker: 'Cohere' },
+        { value: 'cohere/command-r-plus-08-2024', label: 'Command R+ (08-2024)', maker: 'Cohere' },
+        { value: 'cohere/command-r', label: 'Command R', maker: 'Cohere' },
+        { value: 'cohere/command-r-08-2024', label: 'Command R (08-2024)', maker: 'Cohere' },
+        { value: 'cohere/command', label: 'Command', maker: 'Cohere' },
+        { value: 'cohere/command-light', label: 'Command Light', maker: 'Cohere' },
+
+        // Qwen (Alibaba)
+        { value: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-2.5-32b-instruct', label: 'Qwen 2.5 32B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-2.5-14b-instruct', label: 'Qwen 2.5 14B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-2.5-7b-instruct', label: 'Qwen 2.5 7B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-2.5-coder-32b-instruct', label: 'Qwen 2.5 Coder 32B', maker: 'Qwen' },
+        { value: 'qwen/qwen-2-72b-instruct', label: 'Qwen 2 72B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-2-7b-instruct', label: 'Qwen 2 7B Instruct', maker: 'Qwen' },
+        { value: 'qwen/qwen-1.5-110b-chat', label: 'Qwen 1.5 110B Chat', maker: 'Qwen' },
+        { value: 'qwen/qwen-1.5-72b-chat', label: 'Qwen 1.5 72B Chat', maker: 'Qwen' },
+
+        // xAI (X.AI)
+        { value: 'x-ai/grok-beta', label: 'Grok Beta', maker: 'xAI' },
+        { value: 'x-ai/grok-vision-beta', label: 'Grok Vision Beta', maker: 'xAI' },
+
+        // Perplexity
+        { value: 'perplexity/llama-3.1-sonar-huge-128k-online', label: 'Sonar Huge 128k (Online)', maker: 'Perplexity' },
+        { value: 'perplexity/llama-3.1-sonar-large-128k-online', label: 'Sonar Large 128k (Online)', maker: 'Perplexity' },
+        { value: 'perplexity/llama-3.1-sonar-large-128k-chat', label: 'Sonar Large 128k (Chat)', maker: 'Perplexity' },
+        { value: 'perplexity/llama-3.1-sonar-small-128k-online', label: 'Sonar Small 128k (Online)', maker: 'Perplexity' },
+        { value: 'perplexity/llama-3.1-sonar-small-128k-chat', label: 'Sonar Small 128k (Chat)', maker: 'Perplexity' },
+
+        // Microsoft
+        { value: 'microsoft/phi-3-medium-128k-instruct', label: 'Phi-3 Medium 128k', maker: 'Microsoft' },
+        { value: 'microsoft/phi-3-mini-128k-instruct', label: 'Phi-3 Mini 128k', maker: 'Microsoft' },
+        { value: 'microsoft/wizardlm-2-8x22b', label: 'WizardLM-2 8x22B', maker: 'Microsoft' },
+        { value: 'microsoft/wizardlm-2-7b', label: 'WizardLM-2 7B', maker: 'Microsoft' },
+
+        // Amazon
+        { value: 'amazon/nova-pro-v1', label: 'Nova Pro v1', maker: 'Amazon' },
+        { value: 'amazon/nova-lite-v1', label: 'Nova Lite v1', maker: 'Amazon' },
+        { value: 'amazon/nova-micro-v1', label: 'Nova Micro v1', maker: 'Amazon' },
+
+        // AI21 Labs
+        { value: 'ai21/jamba-1-5-large', label: 'Jamba 1.5 Large', maker: 'AI21' },
+        { value: 'ai21/jamba-1-5-mini', label: 'Jamba 1.5 Mini', maker: 'AI21' },
+
+        // Nous Research
+        { value: 'nousresearch/hermes-3-llama-3.1-405b', label: 'Hermes 3 Llama 3.1 405B', maker: 'Nous Research' },
+        { value: 'nousresearch/hermes-2-pro-llama-3-8b', label: 'Hermes 2 Pro Llama 3 8B', maker: 'Nous Research' },
+        { value: 'nousresearch/nous-capybara-7b', label: 'Nous Capybara 7B', maker: 'Nous Research' },
+
+        // Databricks
+        { value: 'databricks/dbrx-instruct', label: 'DBRX Instruct', maker: 'Databricks' },
+
+        // Inflection
+        { value: 'inflection/inflection-3-pi', label: 'Inflection 3 Pi', maker: 'Inflection' },
+        { value: 'inflection/inflection-3-productivity', label: 'Inflection 3 Productivity', maker: 'Inflection' },
+
+        // 01.AI
+        { value: '01-ai/yi-large', label: 'Yi Large', maker: '01.AI' },
+        { value: '01-ai/yi-large-turbo', label: 'Yi Large Turbo', maker: '01.AI' },
+        { value: '01-ai/yi-34b-chat', label: 'Yi 34B Chat', maker: '01.AI' },
+
+        // Anthropic (Legacy)
+        { value: 'anthropic/claude-1', label: 'Claude 1', maker: 'Anthropic' },
+        { value: 'anthropic/claude-1.2', label: 'Claude 1.2', maker: 'Anthropic' },
+
+        // OpenAI (Legacy)
+        { value: 'openai/gpt-3.5-turbo-instruct', label: 'GPT-3.5 Turbo Instruct', maker: 'OpenAI' },
+
+        // Custom
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
       embedding: [
-        { value: 'text-embedding-3-small', label: 'OpenAI text-embedding-3-small (Recommended)' },
-        { value: 'text-embedding-3-large', label: 'OpenAI text-embedding-3-large' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        // OpenAI
+        { value: 'openai/text-embedding-3-small', label: 'text-embedding-3-small', maker: 'OpenAI', recommended: true },
+        { value: 'openai/text-embedding-3-large', label: 'text-embedding-3-large', maker: 'OpenAI' },
+        { value: 'openai/text-embedding-ada-002', label: 'text-embedding-ada-002', maker: 'OpenAI' },
+
+        // Cohere
+        { value: 'cohere/embed-english-v3.0', label: 'Embed English v3.0', maker: 'Cohere' },
+        { value: 'cohere/embed-multilingual-v3.0', label: 'Embed Multilingual v3.0', maker: 'Cohere' },
+        { value: 'cohere/embed-english-light-v3.0', label: 'Embed English Light v3.0', maker: 'Cohere' },
+        { value: 'cohere/embed-multilingual-light-v3.0', label: 'Embed Multilingual Light v3.0', maker: 'Cohere' },
+
+        // Voyage AI
+        { value: 'voyage/voyage-3', label: 'Voyage 3', maker: 'Voyage AI' },
+        { value: 'voyage/voyage-3-lite', label: 'Voyage 3 Lite', maker: 'Voyage AI' },
+        { value: 'voyage/voyage-2', label: 'Voyage 2', maker: 'Voyage AI' },
+        { value: 'voyage/voyage-code-2', label: 'Voyage Code 2', maker: 'Voyage AI' },
+
+        // Google
+        { value: 'google/text-embedding-004', label: 'Text Embedding 004', maker: 'Google' },
+
+        // Custom
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
     },
     openai: {
       chat: [
-        { value: 'gpt-4o', label: 'GPT-4o (Recommended)' },
-        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-        { value: 'gpt-4', label: 'GPT-4' },
-        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-        { value: 'o1-preview', label: 'o1 Preview' },
-        { value: 'o1-mini', label: 'o1 Mini' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        { value: 'gpt-4o', label: 'GPT-4o', maker: 'OpenAI', recommended: true },
+        { value: 'gpt-4o-mini', label: 'GPT-4o Mini', maker: 'OpenAI' },
+        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', maker: 'OpenAI' },
+        { value: 'gpt-4', label: 'GPT-4', maker: 'OpenAI' },
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', maker: 'OpenAI' },
+        { value: 'o1-preview', label: 'o1 Preview', maker: 'OpenAI' },
+        { value: 'o1-mini', label: 'o1 Mini', maker: 'OpenAI' },
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
       embedding: [
-        { value: 'text-embedding-3-small', label: 'text-embedding-3-small (Recommended)' },
-        { value: 'text-embedding-3-large', label: 'text-embedding-3-large' },
-        { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002 (Legacy)' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        { value: 'text-embedding-3-small', label: 'text-embedding-3-small', maker: 'OpenAI', recommended: true },
+        { value: 'text-embedding-3-large', label: 'text-embedding-3-large', maker: 'OpenAI' },
+        { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002', maker: 'OpenAI' },
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
     },
     anthropic: {
       chat: [
-        { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Recommended)' },
-        { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-        { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
-        { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', maker: 'Anthropic', recommended: true },
+        { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus', maker: 'Anthropic' },
+        { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet', maker: 'Anthropic' },
+        { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', maker: 'Anthropic' },
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
       embedding: [
-        { value: 'text-embedding-3-small', label: 'OpenAI text-embedding-3-small (via OpenRouter)' },
-        { value: 'custom', label: '✏️ Custom Model...' },
+        { value: 'text-embedding-3-small', label: 'text-embedding-3-small (via OpenRouter)', maker: 'OpenAI', recommended: true },
+        { value: 'custom', label: '✏️ Custom Model...', maker: 'Custom' },
       ],
     },
     platform_default: {
-      chat: [{ value: 'openai/gpt-4o', label: 'GPT-4o (Platform Default)' }],
-      embedding: [{ value: 'text-embedding-3-small', label: 'text-embedding-3-small' }],
+      chat: [{ value: 'openai/gpt-4o', label: 'GPT-4o (Platform Default)', maker: 'OpenAI', recommended: true }],
+      embedding: [{ value: 'text-embedding-3-small', label: 'text-embedding-3-small', maker: 'OpenAI', recommended: true }],
     },
   };
 
+  // Filter models based on search query
+  const filterModels = (models: typeof modelOptions.openrouter.chat, filter: string) => {
+    if (!filter) return models;
+    const lowerFilter = filter.toLowerCase();
+    return models.filter(
+      (m) =>
+        m.label.toLowerCase().includes(lowerFilter) ||
+        m.value.toLowerCase().includes(lowerFilter) ||
+        m.maker.toLowerCase().includes(lowerFilter)
+    );
+  };
+
+  // Group models by maker
+  const groupByMaker = (models: typeof modelOptions.openrouter.chat) => {
+    const grouped: Record<string, typeof modelOptions.openrouter.chat> = {};
+    models.forEach((model) => {
+      if (!grouped[model.maker]) {
+        grouped[model.maker] = [];
+      }
+      grouped[model.maker].push(model);
+    });
+    return grouped;
+  };
+
   const currentModels = modelOptions[provider];
+  const filteredChatModels = filterModels(currentModels.chat, chatModelFilter);
+  const filteredEmbeddingModels = filterModels(currentModels.embedding, embeddingModelFilter);
+  const groupedChatModels = groupByMaker(filteredChatModels);
+  const groupedEmbeddingModels = groupByMaker(filteredEmbeddingModels);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -249,18 +434,36 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Chat Model
         </label>
+
+        {/* Filter Input */}
+        <input
+          type="text"
+          value={chatModelFilter}
+          onChange={(e) => setChatModelFilter(e.target.value)}
+          placeholder="🔍 Search models by name, maker, or ID..."
+          className="w-full px-3 py-2 mb-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          disabled={isPending}
+        />
+
+        {/* Model Dropdown with Groups */}
         <select
           value={chatModel}
           onChange={(e) => setChatModel(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isPending}
+          size={chatModelFilter ? Math.min(filteredChatModels.length + Object.keys(groupedChatModels).length, 10) : undefined}
         >
-          {currentModels.chat.map((model) => (
-            <option key={model.value} value={model.value}>
-              {model.label}
-            </option>
+          {Object.entries(groupedChatModels).map(([maker, models]) => (
+            <optgroup key={maker} label={`${maker} (${models.length})`}>
+              {models.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label} {model.recommended ? '⭐' : ''}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
+
         {chatModel === 'custom' && (
           <div className="mt-3">
             <input
@@ -278,8 +481,10 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
             </p>
           </div>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+
+        <p className="mt-2 text-sm text-gray-500">
           Used for lead research, qualification, and email generation
+          {chatModelFilter && ` • Showing ${filteredChatModels.length} of ${currentModels.chat.length} models`}
         </p>
       </div>
 
@@ -288,18 +493,36 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Embedding Model
         </label>
+
+        {/* Filter Input */}
+        <input
+          type="text"
+          value={embeddingModelFilter}
+          onChange={(e) => setEmbeddingModelFilter(e.target.value)}
+          placeholder="🔍 Search embedding models..."
+          className="w-full px-3 py-2 mb-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          disabled={isPending}
+        />
+
+        {/* Model Dropdown with Groups */}
         <select
           value={embeddingModel}
           onChange={(e) => setEmbeddingModel(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isPending}
+          size={embeddingModelFilter ? Math.min(filteredEmbeddingModels.length + Object.keys(groupedEmbeddingModels).length, 8) : undefined}
         >
-          {currentModels.embedding.map((model) => (
-            <option key={model.value} value={model.value}>
-              {model.label}
-            </option>
+          {Object.entries(groupedEmbeddingModels).map(([maker, models]) => (
+            <optgroup key={maker} label={`${maker} (${models.length})`}>
+              {models.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label} {model.recommended ? '⭐' : ''}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
+
         {embeddingModel === 'custom' && (
           <div className="mt-3">
             <input
@@ -317,8 +540,10 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
             </p>
           </div>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+
+        <p className="mt-2 text-sm text-gray-500">
           Used for knowledge base search
+          {embeddingModelFilter && ` • Showing ${filteredEmbeddingModels.length} of ${currentModels.embedding.length} models`}
         </p>
       </div>
 
