@@ -33,6 +33,8 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
   const [provider, setProvider] = useState(initialConfig.provider);
   const [chatModel, setChatModel] = useState(initialConfig.models.chat);
   const [embeddingModel, setEmbeddingModel] = useState(initialConfig.models.embedding);
+  const [customChatModel, setCustomChatModel] = useState('');
+  const [customEmbeddingModel, setCustomEmbeddingModel] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [openrouterSiteUrl, setOpenrouterSiteUrl] = useState(
@@ -55,12 +57,16 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Use custom model if 'custom' is selected
+    const finalChatModel = chatModel === 'custom' ? customChatModel : chatModel;
+    const finalEmbeddingModel = embeddingModel === 'custom' ? customEmbeddingModel : embeddingModel;
+
     startTransition(async () => {
       try {
         await updateAiConfigAction({
           provider,
-          chatModel,
-          embeddingModel,
+          chatModel: finalChatModel,
+          embeddingModel: finalEmbeddingModel,
           apiKey: apiKey || undefined,
           openrouterSiteUrl,
           openrouterSiteName,
@@ -115,38 +121,62 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
     openrouter: {
       chat: [
         { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Recommended)' },
+        { value: 'anthropic/claude-3.5-sonnet:beta', label: 'Claude 3.5 Sonnet (Beta)' },
         { value: 'anthropic/claude-3-opus', label: 'Claude 3 Opus' },
         { value: 'anthropic/claude-3-haiku', label: 'Claude 3 Haiku (Fast)' },
         { value: 'openai/gpt-4o', label: 'GPT-4o' },
+        { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (Fast & Cheap)' },
         { value: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo' },
+        { value: 'openai/o1-preview', label: 'OpenAI o1 Preview' },
+        { value: 'openai/o1-mini', label: 'OpenAI o1 Mini' },
         { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5' },
+        { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5 (Fast)' },
+        { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash (Free)' },
         { value: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
+        { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
+        { value: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B' },
+        { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+        { value: 'deepseek/deepseek-r1', label: 'DeepSeek R1' },
+        { value: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B' },
+        { value: 'x-ai/grok-beta', label: 'Grok Beta' },
+        { value: 'perplexity/llama-3.1-sonar-large-128k-online', label: 'Perplexity Sonar (Online)' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
       embedding: [
         { value: 'text-embedding-3-small', label: 'OpenAI text-embedding-3-small (Recommended)' },
         { value: 'text-embedding-3-large', label: 'OpenAI text-embedding-3-large' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
     },
     openai: {
       chat: [
         { value: 'gpt-4o', label: 'GPT-4o (Recommended)' },
+        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
         { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
         { value: 'gpt-4', label: 'GPT-4' },
         { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+        { value: 'o1-preview', label: 'o1 Preview' },
+        { value: 'o1-mini', label: 'o1 Mini' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
       embedding: [
         { value: 'text-embedding-3-small', label: 'text-embedding-3-small (Recommended)' },
         { value: 'text-embedding-3-large', label: 'text-embedding-3-large' },
+        { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002 (Legacy)' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
     },
     anthropic: {
       chat: [
         { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Recommended)' },
         { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+        { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
         { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
       embedding: [
         { value: 'text-embedding-3-small', label: 'OpenAI text-embedding-3-small (via OpenRouter)' },
+        { value: 'custom', label: '✏️ Custom Model...' },
       ],
     },
     platform_default: {
@@ -231,6 +261,23 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
             </option>
           ))}
         </select>
+        {chatModel === 'custom' && (
+          <div className="mt-3">
+            <input
+              type="text"
+              value={customChatModel}
+              onChange={(e) => setCustomChatModel(e.target.value)}
+              placeholder={provider === 'openrouter' ? 'e.g., anthropic/claude-3.5-sonnet' : 'e.g., gpt-4o'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              disabled={isPending}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {provider === 'openrouter' && 'Browse models at openrouter.ai/models'}
+              {provider === 'openai' && 'See available models at platform.openai.com/docs/models'}
+              {provider === 'anthropic' && 'See available models at docs.anthropic.com/en/docs/models-overview'}
+            </p>
+          </div>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           Used for lead research, qualification, and email generation
         </p>
@@ -253,6 +300,23 @@ export function AiConfigForm({ initialConfig }: AiConfigFormProps) {
             </option>
           ))}
         </select>
+        {embeddingModel === 'custom' && (
+          <div className="mt-3">
+            <input
+              type="text"
+              value={customEmbeddingModel}
+              onChange={(e) => setCustomEmbeddingModel(e.target.value)}
+              placeholder="e.g., text-embedding-3-small"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              disabled={isPending}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {provider === 'openrouter' && 'Browse embedding models at openrouter.ai/models'}
+              {provider === 'openai' && 'See available models at platform.openai.com/docs/models'}
+              {provider === 'anthropic' && 'Note: Anthropic doesn\'t provide embedding models, use OpenAI via OpenRouter'}
+            </p>
+          </div>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           Used for knowledge base search
         </p>
