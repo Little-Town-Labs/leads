@@ -99,6 +99,13 @@ export async function updateAiConfigAction(formData: {
     return { success: true };
   } catch (error) {
     console.error('updateAiConfigAction error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      orgId,
+      provider: formData.provider,
+      hasApiKey: !!formData.apiKey,
+    });
     // Return error message to client
     throw error;
   }
