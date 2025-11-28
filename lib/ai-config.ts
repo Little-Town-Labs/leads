@@ -136,15 +136,34 @@ export async function getDecryptedAiConfig(orgId: string): Promise<DecryptedAiCo
  */
 export async function updateAiConfig(orgId: string, config: AiConfig): Promise<void> {
   try {
-    await db
+    // First check if tenant exists
+    const tenant = await db.query.tenants.findFirst({
+      where: eq(tenants.clerkOrgId, orgId),
+      columns: { id: true },
+    });
+
+    if (!tenant) {
+      console.error(`Tenant not found for orgId: ${orgId}`);
+      throw new Error(
+        'Organization not found in database. Please ensure your organization is properly synced from Clerk.'
+      );
+    }
+
+    // Update the config
+    const result = await db
       .update(tenants)
       .set({
         aiConfig: config as any, // Type assertion for JSONB
         updatedAt: new Date(),
       })
       .where(eq(tenants.clerkOrgId, orgId));
+
+    console.log('AI config updated successfully for orgId:', orgId);
   } catch (error) {
     console.error('Failed to update AI config:', error);
+    if (error instanceof Error) {
+      throw error; // Re-throw if it's already our custom error
+    }
     throw new Error('Failed to update AI configuration');
   }
 }

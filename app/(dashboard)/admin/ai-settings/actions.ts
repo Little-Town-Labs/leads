@@ -41,53 +41,67 @@ export async function updateAiConfigAction(formData: {
   costAlertsThreshold?: number;
   costAlertsEmail?: string;
 }) {
-  const { orgId } = await auth();
+  try {
+    const { orgId } = await auth();
 
-  if (!orgId) {
-    throw new Error('No organization context');
-  }
-
-  // Validate encryption is set up if using BYOK
-  if (formData.apiKey && formData.provider !== 'platform_default') {
-    try {
-      validateEncryption();
-    } catch (error) {
-      throw new Error('Encryption not configured. Set ENCRYPTION_SECRET environment variable.');
+    if (!orgId) {
+      throw new Error('No organization context');
     }
+
+    console.log('Updating AI config for orgId:', orgId);
+    console.log('Form data:', {
+      provider: formData.provider,
+      chatModel: formData.chatModel,
+      embeddingModel: formData.embeddingModel,
+      hasApiKey: !!formData.apiKey,
+    });
+
+    // Validate encryption is set up if using BYOK
+    if (formData.apiKey && formData.provider !== 'platform_default') {
+      try {
+        validateEncryption();
+      } catch (error) {
+        throw new Error('Encryption not configured. Set ENCRYPTION_SECRET environment variable.');
+      }
+    }
+
+    // Encrypt API key if provided
+    const encryptedApiKey = formData.apiKey && formData.provider !== 'platform_default'
+      ? encryptApiKey(formData.apiKey)
+      : undefined;
+
+    // Build config object
+    const config = {
+      provider: formData.provider,
+      models: {
+        chat: formData.chatModel,
+        embedding: formData.embeddingModel,
+      },
+      encryptedApiKey,
+      openrouterSettings: formData.provider === 'openrouter' ? {
+        siteUrl: formData.openrouterSiteUrl,
+        siteName: formData.openrouterSiteName,
+      } : undefined,
+      usageTracking: formData.usageTracking,
+      costAlerts: formData.costAlertsEnabled ? {
+        enabled: true,
+        monthlyThreshold: formData.costAlertsThreshold || 10000, // Default $100
+        email: formData.costAlertsEmail || '',
+      } : undefined,
+    };
+
+    // Update in database
+    await updateAiConfig(orgId, config);
+
+    // Revalidate the page
+    revalidatePath('/admin/ai-settings');
+
+    return { success: true };
+  } catch (error) {
+    console.error('updateAiConfigAction error:', error);
+    // Return error message to client
+    throw error;
   }
-
-  // Encrypt API key if provided
-  const encryptedApiKey = formData.apiKey && formData.provider !== 'platform_default'
-    ? encryptApiKey(formData.apiKey)
-    : undefined;
-
-  // Build config object
-  const config = {
-    provider: formData.provider,
-    models: {
-      chat: formData.chatModel,
-      embedding: formData.embeddingModel,
-    },
-    encryptedApiKey,
-    openrouterSettings: formData.provider === 'openrouter' ? {
-      siteUrl: formData.openrouterSiteUrl,
-      siteName: formData.openrouterSiteName,
-    } : undefined,
-    usageTracking: formData.usageTracking,
-    costAlerts: formData.costAlertsEnabled ? {
-      enabled: true,
-      monthlyThreshold: formData.costAlertsThreshold || 10000, // Default $100
-      email: formData.costAlertsEmail || '',
-    } : undefined,
-  };
-
-  // Update in database
-  await updateAiConfig(orgId, config);
-
-  // Revalidate the page
-  revalidatePath('/admin/ai-settings');
-
-  return { success: true };
 }
 
 /**
