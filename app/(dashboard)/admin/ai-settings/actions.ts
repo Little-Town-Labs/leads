@@ -41,12 +41,13 @@ export async function updateAiConfigAction(formData: {
   costAlertsThreshold?: number;
   costAlertsEmail?: string;
 }) {
-  try {
-    const { orgId } = await auth();
+  const { orgId } = await auth();
 
-    if (!orgId) {
-      throw new Error('No organization context');
-    }
+  if (!orgId) {
+    throw new Error('No organization context');
+  }
+
+  try {
 
     console.log('Updating AI config for orgId:', orgId);
     console.log('Form data:', {
