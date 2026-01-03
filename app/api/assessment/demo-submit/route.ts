@@ -3,6 +3,8 @@ import { db } from '@/db';
 import { leads, quizResponses, leadScores } from '@/db/schema';
 import { calculateProductFitScore } from '@/lib/demo-scoring';
 import { notifySalesTeam } from '@/lib/sales-notifications';
+import { checkBotId } from 'botid/server';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 const DEMO_ORG_ID = 'org_demo_leadagent';
 const DEMO_USER_ID = 'system_demo';
@@ -16,6 +18,39 @@ interface QuizResponseData {
 
 export async function POST(request: NextRequest) {
   try {
+    // Bot detection
+    const verification = await checkBotId();
+
+    if (verification.isBot) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await checkRateLimit(clientIp, RATE_LIMITS.DEMO_SUBMIT);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Too many requests. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+            'X-RateLimit-Limit': RATE_LIMITS.DEMO_SUBMIT.requests.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetAt.toISOString(),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const { responses } = body as { responses: QuizResponseData[] };
 

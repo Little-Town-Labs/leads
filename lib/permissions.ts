@@ -7,7 +7,8 @@ import { auth } from '@clerk/nextjs/server';
 export type Permission =
   | 'leads:read'        // View leads
   | 'leads:write'       // Create/edit leads
-  | 'leads:approve'     // Approve/reject leads
+  | 'leads:approve'     // Approve leads
+  | 'leads:reject'      // Reject leads
   | 'leads:delete'      // Delete leads
   | 'leads:export'      // Export lead data
   | 'leads:comment'     // Add comments/notes to leads
@@ -36,6 +37,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'leads:read',
     'leads:write',
     'leads:approve',
+    'leads:reject',
     'leads:delete',
     'leads:export',
     'leads:comment',
@@ -60,6 +62,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'leads:read',
     'leads:write',
     'leads:approve',
+    'leads:reject',
     'leads:export',
     'leads:comment',
     'leads:view_all',

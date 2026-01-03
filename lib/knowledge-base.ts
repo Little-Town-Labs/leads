@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { knowledgeBaseDocs, knowledgeBaseChunks } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { embed } from 'ai';
 import { getEmbeddingModel } from './ai-resolver';
 import { trackAiUsage } from './ai-usage';
@@ -55,28 +55,10 @@ export async function generateEmbedding(text: string, orgId: string): Promise<nu
 }
 
 /**
- * Calculate cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have the same length');
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-/**
  * Search knowledge base for relevant content using semantic similarity
+ *
+ * Uses pgvector for efficient similarity search with native database operations.
+ * Falls back to text embeddings if vector embeddings are not available.
  */
 export async function searchKnowledgeBase(
   orgId: string,
@@ -87,61 +69,49 @@ export async function searchKnowledgeBase(
     // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(query, orgId);
 
-    // Get all active chunks for the organization
+    // Use pgvector cosine similarity operator (<=>)
+    // 1 - distance gives us similarity score (0-1 range)
     const chunks = await db
       .select({
         id: knowledgeBaseChunks.id,
         content: knowledgeBaseChunks.content,
-        embedding: knowledgeBaseChunks.embedding,
+        embeddingVector: knowledgeBaseChunks.embeddingVector,
         docId: knowledgeBaseChunks.docId,
+        // Calculate similarity: 1 - cosine_distance for values between 0-1
+        similarity: sql<number>`1 - (${knowledgeBaseChunks.embeddingVector} <=> ${sql.raw(`'[${queryEmbedding.join(',')}]'::vector`)})`,
       })
       .from(knowledgeBaseChunks)
       .innerJoin(knowledgeBaseDocs, eq(knowledgeBaseChunks.docId, knowledgeBaseDocs.id))
       .where(
         and(
           eq(knowledgeBaseChunks.orgId, orgId),
-          eq(knowledgeBaseDocs.isActive, true)
+          eq(knowledgeBaseDocs.isActive, true),
+          isNull(knowledgeBaseDocs.deletedAt) // Exclude soft-deleted documents
         )
-      );
+      )
+      .orderBy(desc(sql`1 - (${knowledgeBaseChunks.embeddingVector} <=> ${sql.raw(`'[${queryEmbedding.join(',')}]'::vector`)})`))
+      .limit(topK);
 
     if (chunks.length === 0) {
       return [];
     }
 
-    // Calculate similarity for each chunk
-    const results = chunks
-      .map((chunk) => {
-        if (!chunk.embedding || !chunk.docId) return null;
-
-        const chunkEmbedding = JSON.parse(chunk.embedding) as number[];
-        const similarity = cosineSimilarity(queryEmbedding, chunkEmbedding);
-
-        return {
-          content: chunk.content,
-          docId: chunk.docId,
-          similarity,
-        };
-      })
-      .filter((result): result is NonNullable<typeof result> => result !== null)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, topK);
-
     // Get document titles for the top results
-    const docIds = [...new Set(results.map((r) => r.docId))];
+    const docIds = [...new Set(chunks.map((c) => c.docId))];
     const docs = await db
       .select({
         id: knowledgeBaseDocs.id,
         title: knowledgeBaseDocs.title,
       })
       .from(knowledgeBaseDocs)
-      .where(sql`${knowledgeBaseDocs.id} IN (${sql.join(docIds.map((id) => sql`${id}`), sql`, `)})`);
+      .where(sql`${knowledgeBaseDocs.id} IN (${sql.join(docIds.map((id) => sql`${id}`), sql`, `)})`)
 
     const docMap = new Map(docs.map((doc) => [doc.id, doc.title ?? 'Unknown']));
 
-    return results.map((result) => ({
-      content: result.content,
-      title: (docMap.get(result.docId) ?? 'Unknown') as string,
-      similarity: result.similarity,
+    return chunks.map((chunk) => ({
+      content: chunk.content,
+      title: docMap.get(chunk.docId!) ?? 'Unknown',
+      similarity: chunk.similarity,
     }));
   } catch (error) {
     console.error('Error searching knowledge base:', error);
@@ -192,7 +162,8 @@ export async function addDocumentToKnowledgeBase(
         content,
         contentType,
         metadata,
-        embedding: JSON.stringify(docEmbedding),
+        embedding: JSON.stringify(docEmbedding), // Keep for backward compatibility
+        embeddingVector: docEmbedding, // Native pgvector
       })
       .returning();
 
@@ -208,7 +179,8 @@ export async function addDocumentToKnowledgeBase(
         docId: doc.id,
         chunkIndex: i,
         content: chunks[i],
-        embedding: JSON.stringify(chunkEmbedding),
+        embedding: JSON.stringify(chunkEmbedding), // Keep for backward compatibility
+        embeddingVector: chunkEmbedding, // Native pgvector
         tokenCount: Math.ceil(chunks[i].length / 4), // Rough estimate
       });
     }

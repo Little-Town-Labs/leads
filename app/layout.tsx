@@ -3,6 +3,10 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { ClerkProvider } from '@clerk/nextjs';
+import { validateEnv } from '@/lib/env-validation';
+
+// Validate environment variables on application startup
+validateEnv();
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

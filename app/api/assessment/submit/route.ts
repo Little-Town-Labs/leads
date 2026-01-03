@@ -4,6 +4,8 @@ import { leads, quizResponses, leadScores } from '@/db/schema';
 import { calculateScore, extractContactInfo, getTierAction, type QuizResponseData } from '@/lib/scoring';
 import { start } from 'workflow/api';
 import { workflowInbound } from '@/workflows/inbound';
+import { checkBotId } from 'botid/server';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 const DEFAULT_ORG_ID = 'default'; // For Phase 1
 const DEFAULT_USER_ID = 'system'; // For Phase 1 (no auth yet)
@@ -14,6 +16,39 @@ const DEFAULT_USER_ID = 'system'; // For Phase 1 (no auth yet)
  */
 export async function POST(request: NextRequest) {
   try {
+    // Bot detection
+    const verification = await checkBotId();
+
+    if (verification.isBot) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
+      );
+    }
+
+    // Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await checkRateLimit(clientIp, RATE_LIMITS.ASSESSMENT_SUBMIT);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Too many requests. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+            'X-RateLimit-Limit': RATE_LIMITS.ASSESSMENT_SUBMIT.requests.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetAt.toISOString(),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const { responses } = body as { responses: QuizResponseData[] };
 

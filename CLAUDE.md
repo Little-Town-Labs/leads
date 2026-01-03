@@ -20,6 +20,12 @@ pnpm type-check       # TypeScript type checking
 pnpm db:migrate       # Run database migrations
 pnpm db:push          # Push schema changes
 pnpm db:studio        # Open Drizzle Studio
+
+# Testing
+pnpm test             # Run tests with Vitest
+pnpm test:watch       # Run tests in watch mode
+pnpm test:coverage    # Run tests with coverage report
+pnpm test:ui          # Open Vitest UI
 ```
 
 ## Architecture
@@ -101,6 +107,7 @@ const { text } = await agent.generate({
 - Token counts, actual/estimated costs, provider, model
 - Per-lead and per-operation analytics
 - Monthly spending reports and cost alerts
+- **Email Alerts**: Automatic email notifications via Resend when monthly cost threshold exceeded
 
 **Encryption** ([lib/encryption.ts](lib/encryption.ts)):
 - Customer API keys encrypted with AES-256-GCM
@@ -119,6 +126,159 @@ const { text } = await agent.generate({
 - Admin role can manage members and settings
 - Regular members can view analytics and leads
 
+### Rate Limiting & Security
+
+**Rate Limiting** ([lib/rate-limit.ts](lib/rate-limit.ts)):
+- Upstash Redis-based rate limiting with sliding window algorithm
+- Protects public endpoints from DDoS and resource exhaustion
+- Fail-open pattern (allows requests if Redis unavailable)
+- Returns 429 status with `Retry-After` header when limit exceeded
+- Configurable limits per endpoint type
+
+**Rate Limit Configuration**:
+```typescript
+import { checkRateLimit, RATE_LIMITS, getClientIp } from '@/lib/rate-limit';
+
+// In API route
+const clientIp = getClientIp(request);
+const result = await checkRateLimit(clientIp, RATE_LIMITS.FORM_SUBMIT);
+
+if (!result.allowed) {
+  return Response.json({ error: 'Too many requests' }, {
+    status: 429,
+    headers: {
+      'Retry-After': result.retryAfter.toString(),
+      'X-RateLimit-Remaining': result.remaining.toString(),
+    }
+  });
+}
+```
+
+**Default Rate Limits**:
+- Form submissions: 10 requests/minute per IP
+- Assessment submissions: 10 requests/minute per IP
+- Assessment questions: 30 requests/minute per IP
+
+**Bot Detection**:
+- All public form endpoints protected with `botid` package
+- Assessment endpoints include bot detection
+- Returns 403 Forbidden for detected bots
+
+**Environment Validation** ([lib/env-validation.ts](lib/env-validation.ts)):
+- Validates all required environment variables on application startup
+- Uses Zod schema for type-safe validation
+- Enforces ENCRYPTION_SECRET format (64 hex characters)
+- Cross-field validation (e.g., SLACK_BOT_TOKEN requires SLACK_SIGNING_SECRET)
+- Application fails fast with detailed error messages if misconfigured
+
+### Knowledge Base & pgvector
+
+**Native Vector Similarity Search**:
+- Uses PostgreSQL pgvector extension for semantic search
+- IVFFlat indexing for fast similarity queries at scale
+- Cosine similarity operator (`<=>`) for native database-level search
+- 1536-dimension embeddings (OpenAI text-embedding-3-small compatible)
+
+**pgvector Migration** ([db/migrations/0001_add_pgvector.sql](db/migrations/0001_add_pgvector.sql)):
+- Enables pgvector extension
+- Adds vector columns to knowledge_base_docs and knowledge_base_chunks
+- Creates IVFFlat indexes with 100 lists
+- Migrates existing JSON embeddings to native vector type
+- Maintains backward compatibility with text embedding fields
+
+**Search Performance**:
+- Database-level similarity search (vs JavaScript O(n) iteration)
+- Index-accelerated queries for sub-millisecond results
+- Automatic filtering of soft-deleted documents
+- Configurable topK parameter for result count
+
+**Example Usage**:
+```typescript
+import { searchKnowledgeBase } from '@/lib/knowledge-base';
+
+const results = await searchKnowledgeBase(orgId, 'pricing plans', 5);
+// Returns: [{ content: '...', title: '...', similarity: 0.85 }, ...]
+```
+
+### Soft Deletes
+
+**Soft Delete Support** ([lib/query-helpers.ts](lib/query-helpers.ts)):
+- Leads, workflows, and knowledge base documents support soft deletes
+- Records marked with `deletedAt`, `deletedBy`, `deletionReason`
+- Soft-deleted records excluded from queries by default
+- Restore capability for accidental deletions
+- Permanent deletion after configurable retention period (default 90 days)
+
+**Migration** ([db/migrations/0003_add_soft_deletes.sql](db/migrations/0003_add_soft_deletes.sql)):
+- Adds deletedAt, deletedBy, deletionReason columns
+- Creates partial indexes for efficient filtering
+- Includes documentation comments
+
+**Soft Delete Functions**:
+```typescript
+import {
+  softDeleteLead,
+  restoreLead,
+  getActiveLeads,
+  permanentlyDeleteOldRecords
+} from '@/lib/query-helpers';
+
+// Soft delete a lead
+await softDeleteLead(leadId, clerkUserId, 'Duplicate entry');
+
+// Restore a lead
+await restoreLead(leadId);
+
+// Get only active (non-deleted) leads
+const leads = await getActiveLeads(orgId);
+
+// Cleanup: Permanently delete records older than 90 days
+const { leadsDeleted } = await permanentlyDeleteOldRecords(90);
+```
+
+**Query Helper Utilities**:
+```typescript
+import { notDeleted } from '@/lib/query-helpers';
+
+// Use in Drizzle queries
+const leads = await db
+  .select()
+  .from(leadsTable)
+  .where(and(
+    eq(leadsTable.orgId, orgId),
+    notDeleted(leadsTable) // Excludes soft-deleted records
+  ));
+```
+
+### Testing
+
+**Testing Framework**: Vitest with coverage reporting
+
+**Test Configuration** ([vitest.config.ts](vitest.config.ts)):
+- Node environment for server-side code
+- Global test utilities (describe, it, expect)
+- V8 coverage provider with 70%+ targets
+- Path aliases (@/) for imports
+
+**Test Coverage**:
+- **Encryption Module**: 35+ tests covering round-trip encryption, tampered data detection, Unicode support
+- **Rate Limiting**: 30+ tests for sliding window algorithm, Redis operations, fail-open behavior
+- **Workflow Error Handling**: 15+ integration tests for workflow finalization and error paths
+- **Target Coverage**: 70% overall, 95%+ for critical security modules
+
+**Running Tests**:
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode for development
+pnpm test:coverage     # Generate coverage report
+pnpm test:ui           # Interactive UI for debugging tests
+```
+
+**Key Test Files**:
+- [lib/encryption.test.ts](lib/encryption.test.ts) - Security critical encryption tests
+- [lib/rate-limit.test.ts](lib/rate-limit.test.ts) - Rate limiting behavior tests
+- [workflows/inbound/index.test.ts](workflows/inbound/index.test.ts) - Workflow integration tests
+
 ## Key Files
 
 **Core Services**:
@@ -129,9 +289,15 @@ const { text } = await agent.generate({
 **AI & BYOK**:
 - [lib/ai-resolver.ts](lib/ai-resolver.ts) - Resolve AI models per organization
 - [lib/ai-config.ts](lib/ai-config.ts) - Manage organization AI configuration
-- [lib/ai-usage.ts](lib/ai-usage.ts) - Track usage, costs, and analytics
+- [lib/ai-usage.ts](lib/ai-usage.ts) - Track usage, costs, and analytics (with email alerts)
 - [lib/encryption.ts](lib/encryption.ts) - Encrypt/decrypt customer API keys
-- [lib/knowledge-base.ts](lib/knowledge-base.ts) - Semantic search with embeddings
+- [lib/knowledge-base.ts](lib/knowledge-base.ts) - Semantic search with pgvector embeddings
+
+**Security & Rate Limiting**:
+- [lib/rate-limit.ts](lib/rate-limit.ts) - Upstash Redis rate limiting with sliding window
+- [lib/env-validation.ts](lib/env-validation.ts) - Startup environment validation
+- [lib/permissions.ts](lib/permissions.ts) - Role-based access control (RBAC)
+- [lib/query-helpers.ts](lib/query-helpers.ts) - Soft delete utilities and query filters
 
 **Database & Workflows**:
 - [db/schema.ts](db/schema.ts) - Drizzle database schema with multi-tenant tables
@@ -247,6 +413,19 @@ AI_GATEWAY_API_KEY                   # Vercel AI Gateway API key (deprecated)
 OPENROUTER_API_KEY                   # OpenRouter API key (platform default for free tier)
 ```
 
+**Rate Limiting** (Upstash Redis):
+```bash
+UPSTASH_REDIS_REST_URL               # Upstash Redis REST URL
+UPSTASH_REDIS_REST_TOKEN             # Upstash Redis REST token
+```
+
+**Email Notifications** (Cost alerts via Resend):
+```bash
+RESEND_API_KEY                       # Resend API key for sending emails
+RESEND_FROM_EMAIL                    # From email address (e.g., alerts@yourdomain.com)
+NEXT_PUBLIC_APP_URL                  # Application URL for email links (optional)
+```
+
 **Optional** (Slack integration disabled without these):
 ```bash
 SLACK_BOT_TOKEN                      # xoxb-... bot token
@@ -259,22 +438,40 @@ SLACK_CHANNEL_ID                     # C... channel ID for notifications
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
+**Setup Upstash Redis** (for rate limiting):
+1. Create account at https://upstash.com
+2. Create a new Redis database (global for low latency)
+3. Copy REST URL and REST token to environment variables
+
 ## Implementation Notes
 
 **Security**:
-- Bot detection using `botid` package in form submission
-- All database queries scoped by `organizationId` for tenant isolation
-- Clerk middleware protects dashboard routes
-- CSRF protection via Clerk session tokens
+- **Rate Limiting**: Upstash Redis-based rate limiting on all public endpoints
+  - Sliding window algorithm with configurable limits per endpoint
+  - Fail-open pattern (allows requests if Redis unavailable)
+  - Returns 429 with Retry-After header when exceeded
+- **Bot Detection**: `botid` package on all form submissions (main + assessment)
+- **Environment Validation**: Startup validation with Zod schema
+  - Validates required variables, formats, and cross-field dependencies
+  - Enforces ENCRYPTION_SECRET format (64 hex characters)
+  - Application fails fast with detailed error messages
 - **BYOK Security**: Customer API keys encrypted with AES-256-GCM
-- API keys stored encrypted in `tenants.aiConfig` JSONB column
-- Encryption secret must be set in environment (never commit to repo)
-- Automatic decryption only when resolving AI models
+  - API keys stored encrypted in `tenants.aiConfig` JSONB column
+  - Encryption secret must be set in environment (never commit to repo)
+  - Automatic decryption only when resolving AI models
+- **Tenant Isolation**: All database queries scoped by `organizationId`
+- **Authentication**: Clerk middleware protects dashboard routes
+- **CSRF Protection**: Via Clerk session tokens
+- **Permissions**: Separate permissions for approve/reject actions (`leads:approve`, `leads:reject`)
 
 **Reliability**:
-- Workflow DevKit provides automatic retries and crash recovery
-- Agent limited to 20 steps to prevent runaway execution
-- Graceful degradation when Slack credentials missing
+- **Workflow DevKit**: Automatic retries and crash recovery for durable workflows
+- **Error Handling**: Workflows properly finalize as 'failed' on errors
+  - Nullable workflow initialization prevents undefined access
+  - Try-catch blocks with finalization in error handler
+- **Agent Safety**: Limited to 20 steps to prevent runaway execution
+- **Graceful Degradation**: Slack integration disabled without credentials
+- **Cost Alerts**: Automatic email notifications via Resend when thresholds exceeded
 
 **Multi-Tenancy**:
 - Subdomain extracted via middleware and passed to routes
@@ -282,17 +479,33 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - All queries filtered by `organizationId` from auth context
 
 **Performance**:
-- Research results truncated to 500 chars in Slack messages
-- Database uses indexes on `organizationId` for fast queries
-- Workflow runs in background, doesn't block form submission
+- **pgvector Search**: Native database-level vector similarity search
+  - IVFFlat indexing for sub-millisecond queries
+  - Cosine similarity operator (`<=>`) in PostgreSQL
+  - Replaces O(n) JavaScript iteration with indexed queries
+- **Database Indexes**: Optimized composite indexes for common query patterns
+  - 20+ indexes on leads, workflows, ai_usage, email_sends
+  - Partial indexes for soft delete filtering
+  - Organization-scoped indexes for multi-tenant isolation
+- **Background Processing**: Workflows run async, don't block form submission
+- **Message Truncation**: Research results truncated to 500 chars in Slack
 
 **AI Usage Tracking**:
 - All AI requests logged to `ai_usage` table with tokens, costs, models
 - Automatic cost estimation using model-specific pricing tables
 - Per-organization, per-lead, and per-operation analytics
-- Monthly usage reports and cost alerts
+- Monthly usage reports and cost alerts via email (Resend)
 - Export usage data to CSV for billing reconciliation
 - Indexed by orgId, operation, provider, model for fast queries
+
+**Data Management**:
+- **Soft Deletes**: Leads, workflows, and knowledge base docs support soft deletion
+  - Records marked with deletedAt, deletedBy, deletionReason
+  - Excluded from queries by default using query helpers
+  - Restore capability for accidental deletions
+  - Permanent deletion after 90-day retention period
+- **Query Helpers**: Utilities for filtering deleted records (`notDeleted()`)
+- **Audit Trail**: Track who deleted records and why
 
 **Tech Stack Analysis**:
 - Uses `simple-wappalyzer` for free, unlimited technology detection

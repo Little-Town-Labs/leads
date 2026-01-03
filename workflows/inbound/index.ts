@@ -46,9 +46,11 @@ export type LeadWithTenant = Lead & {
 export const workflowInbound = async (lead: Lead | LeadWithTenant) => {
   'use workflow';
 
+  let workflow: Awaited<ReturnType<typeof stepCreateWorkflow>> | null = null;
+
   try {
     // Create workflow record in database
-    const workflow = await stepCreateWorkflow(lead);
+    workflow = await stepCreateWorkflow(lead);
 
     // Research the lead
     const research = await stepResearch(lead, workflow.id);
@@ -77,8 +79,16 @@ export const workflowInbound = async (lead: Lead | LeadWithTenant) => {
     await stepFinalizeWorkflow(workflow.id, 'completed');
   } catch (error) {
     console.error('Workflow error:', error);
-    // Note: We can't easily access workflow.id here if stepCreateWorkflow failed
-    // You may want to add error handling logic
+
+    // If workflow was created, mark it as failed
+    if (workflow?.id) {
+      try {
+        await stepFinalizeWorkflow(workflow.id, 'failed');
+      } catch (finalizeError) {
+        console.error('Failed to finalize workflow on error:', finalizeError);
+      }
+    }
+
     throw error;
   }
 

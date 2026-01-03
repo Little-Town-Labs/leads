@@ -5,6 +5,7 @@ import { workflowInbound } from '@/workflows/inbound';
 import { auth } from '@clerk/nextjs/server';
 import { checkUsageLimit, incrementUsage } from '@/lib/subscriptions';
 import { getOrgDb } from '@/lib/db';
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   // Bot detection
@@ -12,6 +13,28 @@ export async function POST(request: Request) {
 
   if (verification.isBot) {
     return Response.json({ error: 'Access denied' }, { status: 403 });
+  }
+
+  // Rate limiting
+  const clientIp = getClientIp(request);
+  const rateLimitResult = await checkRateLimit(clientIp, RATE_LIMITS.FORM_SUBMIT);
+
+  if (!rateLimitResult.allowed) {
+    return Response.json(
+      {
+        error: 'Too many requests. Please try again later.',
+        retryAfter: rateLimitResult.retryAfter,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': rateLimitResult.retryAfter.toString(),
+          'X-RateLimit-Limit': RATE_LIMITS.FORM_SUBMIT.requests.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetAt.toISOString(),
+        },
+      }
+    );
   }
 
   // Validate form data

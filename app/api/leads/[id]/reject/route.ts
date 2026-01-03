@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     // Check permission
-    await requirePermission('leads:approve');
+    await requirePermission('leads:reject');
 
     const orgDb = await getOrgDb();
     const { id } = await params;

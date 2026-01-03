@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp, jsonb, index, integer, boolean, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, timestamp, jsonb, index, integer, boolean, unique, vector } from 'drizzle-orm/pg-core';
 
 /**
  * Users table - stores user data synced from Clerk
@@ -173,6 +173,11 @@ export const leads = pgTable(
     status: text('status').notNull().default('pending'), // pending, approved, rejected
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+    // Soft delete support
+    deletedAt: timestamp('deleted_at'),
+    deletedBy: text('deleted_by'),
+    deletionReason: text('deletion_reason'),
   },
   (table) => ({
     orgIdIndex: index('leads_org_id_idx').on(table.orgId),
@@ -198,6 +203,11 @@ export const workflows = pgTable(
     rejectedBy: text('rejected_by'), // Clerk user ID
     createdAt: timestamp('created_at').defaultNow().notNull(),
     completedAt: timestamp('completed_at'),
+
+    // Soft delete support
+    deletedAt: timestamp('deleted_at'),
+    deletedBy: text('deleted_by'),
+    deletionReason: text('deletion_reason'),
   },
   (table) => ({
     orgIdIndex: index('workflows_org_id_idx').on(table.orgId),
@@ -349,10 +359,16 @@ export const knowledgeBaseDocs = pgTable(
       tags?: string[];
       category?: string;
     }>(),
-    embedding: text('embedding'), // JSON string of vector embedding (1536 dims for OpenAI)
+    embedding: text('embedding'), // JSON string of vector embedding (1536 dims for OpenAI) - deprecated, use embeddingVector
+    embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // Native pgvector for semantic search
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+    // Soft delete support
+    deletedAt: timestamp('deleted_at'),
+    deletedBy: text('deleted_by'),
+    deletionReason: text('deletion_reason'),
   },
   (table) => ({
     orgIdIndex: index('kb_docs_org_id_idx').on(table.orgId),
@@ -372,7 +388,8 @@ export const knowledgeBaseChunks = pgTable(
     docId: uuid('doc_id').references(() => knowledgeBaseDocs.id, { onDelete: 'cascade' }),
     chunkIndex: integer('chunk_index').notNull(), // Position in document
     content: text('content').notNull(), // Chunk text (500-1000 chars)
-    embedding: text('embedding'), // JSON string of vector embedding
+    embedding: text('embedding'), // JSON string of vector embedding - deprecated, use embeddingVector
+    embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // Native pgvector for semantic search
     tokenCount: integer('token_count'), // For tracking API usage
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },

@@ -2,6 +2,7 @@ import { db } from '@/db';
 import { aiUsage, type NewAiUsage } from '@/db/schema';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { getAiConfig } from './ai-config';
+import { Resend } from 'resend';
 
 /**
  * AI Usage Tracking Service
@@ -182,14 +183,59 @@ async function checkCostAlerts(
     const monthlyCost = monthlyUsage.totalCost;
 
     if (monthlyCost >= costAlerts.monthlyThreshold) {
-      // TODO: Send email alert
+      await sendCostAlertEmail(orgId, costAlerts.email, monthlyCost, costAlerts.monthlyThreshold);
       console.warn(
         `Cost alert triggered for ${orgId}: $${monthlyCost / 100} >= $${costAlerts.monthlyThreshold / 100}`
       );
-      // You can integrate with your email service here (e.g., Resend, SendGrid)
     }
   } catch (error) {
     console.error('Failed to check cost alerts:', error);
+  }
+}
+
+/**
+ * Send cost alert email to organization
+ *
+ * @param orgId - Clerk organization ID
+ * @param email - Email address to send alert to
+ * @param monthlyCost - Current monthly cost in cents
+ * @param monthlyThreshold - Threshold that was exceeded in cents
+ */
+async function sendCostAlertEmail(
+  orgId: string,
+  email: string,
+  monthlyCost: number,
+  monthlyThreshold: number
+): Promise<void> {
+  try {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('RESEND_API_KEY not set, skipping cost alert email');
+      return;
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'alerts@leadagent.com',
+      to: email,
+      subject: 'AI Usage Cost Alert - Threshold Exceeded',
+      html: `
+        <h2>AI Usage Cost Alert</h2>
+        <p>Your organization's monthly AI usage cost has exceeded the configured threshold.</p>
+        <ul>
+          <li><strong>Current Monthly Cost:</strong> $${(monthlyCost / 100).toFixed(2)}</li>
+          <li><strong>Threshold:</strong> $${(monthlyThreshold / 100).toFixed(2)}</li>
+          <li><strong>Exceeded By:</strong> $${((monthlyCost - monthlyThreshold) / 100).toFixed(2)}</li>
+        </ul>
+        <p>Please review your AI usage settings and consider adjusting your threshold or optimizing your usage.</p>
+        <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://leadagent.com'}/admin/ai-settings">View Usage Details</a></p>
+      `,
+    });
+
+    console.log(`Cost alert email sent to ${email} for org ${orgId}`);
+  } catch (error) {
+    console.error(`Failed to send cost alert email to ${email}:`, error);
+    // Don't throw - we don't want to fail the usage tracking if email fails
   }
 }
 
