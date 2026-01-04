@@ -2,5 +2,10 @@
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "build": {
+    "env": {
+      "NEXT_PRIVATE_SKIP_TURBOPACK": "1"
+    }
+  }
 }
